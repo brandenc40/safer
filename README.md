@@ -3,6 +3,8 @@
 A web scraping API to fetch data from the Department of Transportation's Safety and Fitness Electronic Records 
 ([SAFER](https://safer.fmcsa.dot.gov/CompanySnapshot.aspx)) System.
 
+Scaping is performed using [Colly](https://github.com/gocolly/colly), this projects only non std lib dependency.
+
 
 ## Installation
 
