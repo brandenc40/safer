@@ -1,6 +1,7 @@
-# Go Safer
+# SAFER Scraper API [GoLang]
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/brandenc40/go-safer)](https://goreportcard.com/report/github.com/brandenc40/go-safer)
+[![Go Reference](https://pkg.go.dev/badge/github.com/brandenc40/safer.svg)](https://pkg.go.dev/github.com/brandenc40/safer)
 
 A web scraping API to fetch data from the Department of Transportation's Safety and Fitness Electronic Records 
 ([SAFER](https://safer.fmcsa.dot.gov/CompanySnapshot.aspx)) System.
