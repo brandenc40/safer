@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strings"
 
-	colly "github.com/gocolly/colly/v2"
+	"github.com/gocolly/colly/v2"
 )
 
 const (
