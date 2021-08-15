@@ -1,4 +1,4 @@
-# Go-Safer
+# Go Safer
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/brandenc40/go-safer)](https://goreportcard.com/report/github.com/brandenc40/go-safer)
 
