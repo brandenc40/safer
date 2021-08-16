@@ -4,7 +4,7 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/brandenc40/safer.svg)](https://pkg.go.dev/github.com/brandenc40/safer)
 [![codecov](https://codecov.io/gh/brandenc40/safer/branch/master/graph/badge.svg?token=4BSF2R1OGP)](https://codecov.io/gh/brandenc40/safer)
 
-A web scraping API to fetch data from the Department of Transportation's Safety and Fitness Electronic Records 
+An API to scrape data from the Department of Transportation's Safety and Fitness Electronic Records 
 ([SAFER](https://safer.fmcsa.dot.gov/CompanySnapshot.aspx)) System.
 
 Scaping is performed using [Colly](https://github.com/gocolly/colly), this project's only non standard library dependency.
