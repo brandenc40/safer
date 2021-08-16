@@ -35,6 +35,11 @@ func Test_parseInt(t *testing.T) {
 			args: args{""},
 			want: 0,
 		},
+		{
+			name: "unable to parse",
+			args: args{"$1,290"},
+			want: 0,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

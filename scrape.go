@@ -10,10 +10,10 @@ import (
 )
 
 const (
-	saferQueryURL  = "https://safer.fmcsa.dot.gov/query.asp"
-	saferSearchURL = "https://safer.fmcsa.dot.gov/keywordx.asp"
-	paramUSDOT     = "USDOT"
-	paramMCMX      = "MC_MX"
+	companySnapshotURL = "https://safer.fmcsa.dot.gov/query.asp"
+	searchURL          = "https://safer.fmcsa.dot.gov/keywordx.asp"
+	paramUSDOT         = "USDOT"
+	paramMCMX          = "MC_MX"
 )
 
 var headers = http.Header{
@@ -27,7 +27,7 @@ var headers = http.Header{
 	"User-Agent":                {"Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Mobile Safari/537.36"},
 }
 
-func scrapeCompanySnapshot(queryParam, queryString string) (*CompanySnapshot, error) {
+func scrapeCompanySnapshot(queryParam, queryString, webURL string) (*CompanySnapshot, error) {
 	// build output snapshot and scraping collector
 	var (
 		snapshot  = new(CompanySnapshot)
@@ -57,14 +57,14 @@ func scrapeCompanySnapshot(queryParam, queryString string) (*CompanySnapshot, er
 	}.Encode()
 
 	// Send POST and start collector job to parse values
-	if err := collector.Request("POST", saferQueryURL, strings.NewReader(data), nil, headers); err != nil {
+	if err := collector.Request("POST", webURL, strings.NewReader(data), nil, headers); err != nil {
 		return nil, err
 	}
 
 	return snapshot, nil
 }
 
-func scrapeCompanyNameSearch(query string) ([]CompanyResult, error) {
+func scrapeCompanyNameSearch(queryString, webURL string) ([]CompanyResult, error) {
 	collector := colly.NewCollector()
 
 	// add handler to parse output into the result array
@@ -79,12 +79,12 @@ func scrapeCompanyNameSearch(query string) ([]CompanyResult, error) {
 
 	// build POST data
 	data := url.Values{
-		"searchstring": {fmt.Sprintf("*%s*", strings.ToUpper(query))},
+		"searchstring": {fmt.Sprintf("*%s*", strings.ToUpper(queryString))},
 		"SEARCHTYPE":   {""},
 	}.Encode()
 
 	// Send POST and start collector job to parse values
-	if err := collector.Request("POST", saferSearchURL, strings.NewReader(data), nil, headers); err != nil {
+	if err := collector.Request("POST", webURL, strings.NewReader(data), nil, headers); err != nil {
 		return nil, err
 	}
 	return output, nil

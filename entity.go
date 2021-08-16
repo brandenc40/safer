@@ -11,7 +11,7 @@ type CompanyResult struct {
 
 // GetSnapshot for the given company result
 func (c CompanyResult) GetSnapshot() (*CompanySnapshot, error) {
-	return scrapeCompanySnapshot(paramUSDOT, c.DOTNumber)
+	return GetCompanyByDOTNumber(c.DOTNumber)
 }
 
 // CompanySnapshot data parsed from the https://safer.fmcsa.dot.gov/CompanySnapshot.aspx website
