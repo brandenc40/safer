@@ -19,6 +19,8 @@ go get github.com/brandenc40/safer
 ### Available Functions
 
 ```go
+package safer
+
 // GetCompanyByDOTNumber - Get a company snapshot by the companies DOT number
 func GetCompanyByDOTNumber(dotNumber string) (*CompanySnapshot, error) 
 
