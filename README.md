@@ -19,7 +19,7 @@ go get github.com/brandenc40/safer
 ## Client Interface
 
 ```go
-// Client -
+// Client for scraping company details from SAFER
 type Client interface {
 	// GetCompanyByDOTNumber - Get a company snapshot by the companies DOT number
 	GetCompanyByDOTNumber(dotNumber string) (*CompanySnapshot, error)
