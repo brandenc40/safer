@@ -9,11 +9,6 @@ type CompanyResult struct {
 	Location  string
 }
 
-// GetSnapshot for the given company result
-func (c CompanyResult) GetSnapshot() (*CompanySnapshot, error) {
-	return GetCompanyByDOTNumber(c.DOTNumber)
-}
-
 // CompanySnapshot data parsed from the https://safer.fmcsa.dot.gov/CompanySnapshot.aspx website
 type CompanySnapshot struct {
 	USVehicleInspections     InspectionSummary `json:"us_vehicle_inspections"`

@@ -27,12 +27,26 @@ var headers = http.Header{
 	"User-Agent":                {"Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Mobile Safari/537.36"},
 }
 
-func scrapeCompanySnapshot(queryParam, queryString, webURL string) (*CompanySnapshot, error) {
+type scraper struct {
+	baseCollector      *colly.Collector
+	companySnapshotURL string
+	searchURL          string
+}
+
+func (s *scraper) scrapeCompanySnapshot(queryParam, queryString string) (*CompanySnapshot, error) {
 	// build output snapshot and scraping collector
 	var (
 		snapshot  = new(CompanySnapshot)
-		collector = colly.NewCollector()
+		collector = s.baseCollector.Clone()
 	)
+
+	// checks to see if the returned page is a not found error, this is only called when the xpath is matched
+	var notFound bool
+	collector.OnXML("html/body/table/tbody/tr/td/font", func(element *colly.XMLElement) {
+		if strings.Contains(element.Text, "No records matching") {
+			notFound = true
+		}
+	})
 
 	// add handler to extract the latest update date
 	collector.OnXML("//b/font[@color='#0000C0']/text()", func(element *colly.XMLElement) {
@@ -56,16 +70,20 @@ func scrapeCompanySnapshot(queryParam, queryString, webURL string) (*CompanySnap
 		"query_string": {queryString},
 	}.Encode()
 
-	// Send POST and start collector job to parse values
-	if err := collector.Request("POST", webURL, strings.NewReader(data), nil, headers); err != nil {
+	// send POST and start collector job to parse values
+	if err := collector.Request("POST", s.companySnapshotURL, strings.NewReader(data), nil, headers); err != nil {
 		return nil, err
+	}
+
+	if notFound {
+		return nil, CompanyNotFoundError
 	}
 
 	return snapshot, nil
 }
 
-func scrapeCompanyNameSearch(queryString, webURL string) ([]CompanyResult, error) {
-	collector := colly.NewCollector()
+func (s *scraper) scrapeCompanyNameSearch(queryString string) ([]CompanyResult, error) {
+	collector := s.baseCollector.Clone()
 
 	// add handler to parse output into the result array
 	var output []CompanyResult
@@ -83,8 +101,8 @@ func scrapeCompanyNameSearch(queryString, webURL string) ([]CompanyResult, error
 		"SEARCHTYPE":   {""},
 	}.Encode()
 
-	// Send POST and start collector job to parse values
-	if err := collector.Request("POST", webURL, strings.NewReader(data), nil, headers); err != nil {
+	// send POST and start collector job to parse values
+	if err := collector.Request("POST", s.searchURL, strings.NewReader(data), nil, headers); err != nil {
 		return nil, err
 	}
 	return output, nil

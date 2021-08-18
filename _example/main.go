@@ -9,9 +9,11 @@ import (
 )
 
 func main() {
+	client := safer.NewClient()
+
 	// by mc/mx
 	s := time.Now()
-	snapshot, err := safer.GetCompanyByMCMX("133655")
+	snapshot, err := client.GetCompanyByMCMX("133655")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -20,7 +22,7 @@ func main() {
 
 	// by dot
 	s = time.Now()
-	snapshot, err = safer.GetCompanyByDOTNumber("3653803")
+	snapshot, err = client.GetCompanyByDOTNumber("3653803")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -29,12 +31,12 @@ func main() {
 	log.Printf(string(v))
 
 	// search results and grab snapshot from result
-	res, err := safer.SearchCompaniesByName("Schneider")
+	res, err := client.SearchCompaniesByName("Schneider")
 	if err != nil {
 		log.Fatalln(err)
 	}
 	log.Printf("%#v", res[0])
-	snapshot, err = res[0].GetSnapshot()
+	snapshot, err = client.GetCompanyByDOTNumber(res[0].DOTNumber)
 	if err != nil {
 		log.Fatalln(err)
 	}

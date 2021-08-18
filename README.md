@@ -16,25 +16,23 @@ Scaping is performed using [Colly](https://github.com/gocolly/colly), this proje
 go get github.com/brandenc40/safer
 ```
 
-### Available Functions
+## Client Interface
 
 ```go
-package safer
-
-// GetCompanyByDOTNumber - Get a company snapshot by the companies DOT number
-func GetCompanyByDOTNumber(dotNumber string) (*CompanySnapshot, error) 
-
-// GetCompanyByMCMX - Get a company snapshot by the companies MC/MX number
-//
-// Note: do not include the prefix. (e.g. use "133655" not "MC-133655")
-func GetCompanyByMCMX(mcmx string) (*CompanySnapshot, error) 
-
-// SearchCompaniesByName - Search for all carriers with a given name. Name queries will return the best matched results
-// in a slice of CompanyResult structs.
-func SearchCompaniesByName(name string) ([]CompanyResult, error) 
+// Client -
+type Client interface {
+	// GetCompanyByDOTNumber - Get a company snapshot by the companies DOT number
+	GetCompanyByDOTNumber(dotNumber string) (*CompanySnapshot, error)
+	// GetCompanyByMCMX - Get a company snapshot by the companies MC/MX number
+	// Note: do not include the prefix. (e.g. use "133655" not "MC-133655")
+	GetCompanyByMCMX(mcmx string) (*CompanySnapshot, error)
+	// SearchCompaniesByName - Search for all carriers with a given name. Name queries will return the best matched results
+	// in a slice of CompanyResult structs.
+	SearchCompaniesByName(name string) ([]CompanyResult, error)
+} 
 ```
 
-### Example Usage
+## Example Usage
 
 ```go
 package main
@@ -46,28 +44,30 @@ import (
 )
 
 func main() {
+	client := safer.NewClient()
+	
 	// by mc/mx
-	snapshot, err := safer.GetCompanyByMCMX("133655")
+	snapshot, err := client.GetCompanyByMCMX("133655")
 	if err != nil {
 		log.Fatalln(err)
 	}
 	log.Printf("%+v", snapshot)
 
 	// by dot
-	snapshot, err = safer.GetCompanyByDOTNumber("264184")
+	snapshot, err = client.GetCompanyByDOTNumber("264184")
 	if err != nil {
 		log.Fatalln(err)
 	}
 	log.Printf("%+v", snapshot)
 
 	// search by name and grab snapshot from result
-	companies, err := safer.SearchCompaniesByName("Schneider")
+	companies, err := client.SearchCompaniesByName("Schneider")
 	if err != nil {
 		log.Fatalln(err)
 	}
 	topResult := companies[0]
 	log.Printf("%#v", topResult)
-	snapshot, err = topResult.GetSnapshot()
+	snapshot, err = client.GetCompanyByDOTNumber(topResult.DOTNumber)
 	if err != nil {
 		log.Fatalln(err)
 	}
