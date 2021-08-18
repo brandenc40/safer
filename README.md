@@ -3,6 +3,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/brandenc40/go-safer)](https://goreportcard.com/report/github.com/brandenc40/go-safer)
 [![Go Reference](https://pkg.go.dev/badge/github.com/brandenc40/safer.svg)](https://pkg.go.dev/github.com/brandenc40/safer)
 [![codecov](https://codecov.io/gh/brandenc40/safer/branch/master/graph/badge.svg?token=4BSF2R1OGP)](https://codecov.io/gh/brandenc40/safer)
+[![Test Coverage](https://github.com/brandenc40/safer/actions/workflows/go.yml/badge.svg)](https://github.com/brandenc40/safer/actions/workflows/go.yml)
 
 An API to scrape data from the Department of Transportation's Safety and Fitness Electronic Records 
 ([SAFER](https://safer.fmcsa.dot.gov/CompanySnapshot.aspx)) System.
