@@ -115,8 +115,8 @@ func TestScrapeSnapshot_NotFound(t *testing.T) {
 		companySnapshotURL: ts.URL + "/snapshot-not-found",
 	}
 	snapshot, err := s.scrapeCompanySnapshot("", "")
-	if err != CompanyNotFoundError {
-		t.Errorf("scrapeCompanySnapshot should return CompanyNotFoundError but got %v", err)
+	if err != ErrCompanyNotFound {
+		t.Errorf("scrapeCompanySnapshot should return ErrCompanyNotFound but got %v", err)
 	}
 	if snapshot != nil {
 		t.Errorf("snapshot should return nil")

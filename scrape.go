@@ -76,7 +76,7 @@ func (s *scraper) scrapeCompanySnapshot(queryParam, queryString string) (*Compan
 	}
 
 	if notFound {
-		return nil, CompanyNotFoundError
+		return nil, ErrCompanyNotFound
 	}
 
 	return snapshot, nil

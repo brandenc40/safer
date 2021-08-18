@@ -2,7 +2,7 @@ package safer
 
 import "github.com/gocolly/colly/v2"
 
-// Client -
+// Client for scraping company details from SAFER
 type Client interface {
 	// GetCompanyByDOTNumber - Get a company snapshot by the companies DOT number
 	GetCompanyByDOTNumber(dotNumber string) (*CompanySnapshot, error)
@@ -14,7 +14,7 @@ type Client interface {
 	SearchCompaniesByName(name string) ([]CompanyResult, error)
 }
 
-// NewClient -
+// NewClient build's a new Client interface
 func NewClient() Client {
 	c := &client{
 		scraper: &scraper{
