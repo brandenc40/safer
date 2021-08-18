@@ -42,10 +42,8 @@ func (s *scraper) scrapeCompanySnapshot(queryParam, queryString string) (*Compan
 
 	// checks to see if the returned page is a not found error, this is only called when the xpath is matched
 	var notFound bool
-	collector.OnXML("html/body/table/tbody/tr/td/font", func(element *colly.XMLElement) {
-		if strings.Contains(element.Text, "No records matching") {
-			notFound = true
-		}
+	collector.OnXML("/html/head/title[text()='SAFER Web - Company Snapshot RECORD NOT FOUND']", func(element *colly.XMLElement) {
+		notFound = true
 	})
 
 	// add handler to extract the latest update date
