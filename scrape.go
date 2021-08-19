@@ -1,7 +1,6 @@
 package safer
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -90,10 +89,8 @@ func (s *scraper) scrapeCompanyNameSearch(queryString string) ([]CompanyResult, 
 	})
 
 	// build POST data
-	data := url.Values{
-		"searchstring": {fmt.Sprintf("*%s*", strings.ToUpper(queryString))},
-		"SEARCHTYPE":   {""},
-	}.Encode()
+	searchString := "*" + strings.ToUpper(queryString) + "*" // e.g. `*SEARCH TERM*`
+	data := url.Values{"searchstring": {searchString}, "SEARCHTYPE": {""}}.Encode()
 
 	// send POST and start collector job to parse values
 	if err := collector.Request(http.MethodPost, s.searchURL, strings.NewReader(data), nil, headers); err != nil {
