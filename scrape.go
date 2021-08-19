@@ -96,7 +96,7 @@ func (s *scraper) scrapeCompanyNameSearch(queryString string) ([]CompanyResult, 
 	}.Encode()
 
 	// send POST and start collector job to parse values
-	if err := collector.Request("POST", s.searchURL, strings.NewReader(data), nil, headers); err != nil {
+	if err := collector.Request(http.MethodPost, s.searchURL, strings.NewReader(data), nil, headers); err != nil {
 		return nil, err
 	}
 	return output, nil
