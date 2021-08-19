@@ -42,19 +42,19 @@ func (s *scraper) scrapeCompanySnapshot(queryParam, queryString string) (*Compan
 
 	// checks to see if the returned page is a not found error, this is only called when the xpath is matched
 	var notFound bool
-	collector.OnXML("/html/head/title[text()='SAFER Web - Company Snapshot RECORD NOT FOUND']", func(element *colly.XMLElement) {
+	collector.OnXML(snapshotNotFoundXpath, func(element *colly.XMLElement) {
 		notFound = true
 	})
 
 	// add handler to extract the latest update date
-	collector.OnXML("//b/font[@color='#0000C0']/text()", func(element *colly.XMLElement) {
+	collector.OnXML(latestUpdateDateXpath, func(element *colly.XMLElement) {
 		snapshot.LatestUpdateDate = parseDate(element.Text)
 	})
 
 	// add handler to extract values from tables
 	var tableIdx int
-	collector.OnXML("//table", func(element *colly.XMLElement) {
-		if mapFunc, ok := snapshotTableXMLMapping[tableIdx]; ok {
+	collector.OnXML(tableXpath, func(element *colly.XMLElement) {
+		if mapFunc, ok := snapshotTableXpathMapping[tableIdx]; ok {
 			mapFunc(element, snapshot)
 		}
 		tableIdx++
@@ -69,7 +69,7 @@ func (s *scraper) scrapeCompanySnapshot(queryParam, queryString string) (*Compan
 	}.Encode()
 
 	// send POST and start collector job to parse values
-	if err := collector.Request("POST", s.companySnapshotURL, strings.NewReader(data), nil, headers); err != nil {
+	if err := collector.Request(http.MethodPost, s.companySnapshotURL, strings.NewReader(data), nil, headers); err != nil {
 		return nil, err
 	}
 
@@ -85,12 +85,8 @@ func (s *scraper) scrapeCompanyNameSearch(queryString string) ([]CompanyResult, 
 
 	// add handler to parse output into the result array
 	var output []CompanyResult
-	collector.OnXML("//tr[.//*[@scope='rpw']]", func(element *colly.XMLElement) {
-		output = append(output, CompanyResult{
-			Name:      element.ChildText("/th/b/a/text()"),
-			DOTNumber: parseDotFromSearchParams(element.ChildText("/th/b/a/@href")),
-			Location:  element.ChildText("/td/b/text()"),
-		})
+	collector.OnXML(companyResultXpath, func(element *colly.XMLElement) {
+		output = append(output, companyResultStructFromXpath(element))
 	})
 
 	// build POST data

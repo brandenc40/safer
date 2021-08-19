@@ -4,6 +4,22 @@ import (
 	"github.com/gocolly/colly/v2"
 )
 
+// function to map the XMLElement to the CompanySnapshot
+type mapperFunc func(element *colly.XMLElement, snapshot *CompanySnapshot)
+
+// company snapshot xpath constants
+const (
+	snapshotNotFoundXpath = "/html/head/title[text()='SAFER Web - Company Snapshot RECORD NOT FOUND']"
+	latestUpdateDateXpath = "//b/font[@color='#0000C0']/text()"
+	tableXpath            = "//table"
+)
+
+// company search xpath constants
+const (
+	companyResultXpath = "//tr[.//*[@scope='rpw']]"
+)
+
+// company snapshot tableXpath indexes
 const (
 	tableIdxGeneralInfo       = 6
 	tableIdxOperationClass    = 7
@@ -16,9 +32,17 @@ const (
 	tableIdxSafetyRating      = 23
 )
 
-type mapperFunc func(element *colly.XMLElement, snapshot *CompanySnapshot)
+// builds a CompanyResult from a companyResultXpath XMLElement
+func companyResultStructFromXpath(element *colly.XMLElement) CompanyResult {
+	return CompanyResult{
+		Name:      element.ChildText("/th/b/a/text()"),
+		DOTNumber: parseDotFromSearchParams(element.ChildText("/th/b/a/@href")),
+		Location:  element.ChildText("/td/b/text()"),
+	}
+}
 
-var snapshotTableXMLMapping = map[int]mapperFunc{
+// key=index of tableXpath element to find the data, value=function to map the XMLElement to the CompanySnapshot
+var snapshotTableXpathMapping = map[int]mapperFunc{
 	tableIdxGeneralInfo: func(element *colly.XMLElement, snapshot *CompanySnapshot) {
 		snapshot.EntityType = element.ChildText("//tr[2]/td/text()")
 		snapshot.LegalName = element.ChildText("//tr[4]/td/text()")
