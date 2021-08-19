@@ -72,6 +72,7 @@ func (s *scraper) scrapeCompanySnapshot(queryParam, queryString string) (*Compan
 		return nil, err
 	}
 
+	// if snapshotNotFoundXpath was matched then return ErrCompanyNotFound
 	if notFound {
 		return nil, ErrCompanyNotFound
 	}
@@ -83,9 +84,9 @@ func (s *scraper) scrapeCompanyNameSearch(queryString string) ([]CompanyResult, 
 	collector := s.baseCollector.Clone()
 
 	// add handler to parse output into the result array
-	var output []CompanyResult
+	var companyResults []CompanyResult
 	collector.OnXML(companyResultXpath, func(element *colly.XMLElement) {
-		output = append(output, companyResultStructFromXpath(element))
+		companyResults = append(companyResults, companyResultStructFromXpath(element))
 	})
 
 	// build POST data
@@ -96,5 +97,5 @@ func (s *scraper) scrapeCompanyNameSearch(queryString string) ([]CompanyResult, 
 	if err := collector.Request(http.MethodPost, s.searchURL, strings.NewReader(data), nil, headers); err != nil {
 		return nil, err
 	}
-	return output, nil
+	return companyResults, nil
 }
