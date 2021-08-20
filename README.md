@@ -38,6 +38,8 @@ type Client interface {
 }
 ```
 
+### Build a Client interface
+
 ```go
 package main
 
