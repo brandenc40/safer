@@ -49,7 +49,8 @@ func TestClient_GetCompanyByDOTNumber(t *testing.T) {
 	}
 }
 
-// benchmarks the time it takes for mapping a snapshot response, omits any time spent waiting for response from SAFER
+// benchmarks the time it takes for mapping a snapshot response.
+// doesn't include any time spent waiting for response from server.
 func BenchmarkClient_GetCompanyByDOTNumber(b *testing.B) {
 	s := newTestServer()
 	defer s.Close()
