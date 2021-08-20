@@ -7,8 +7,13 @@ import (
 	"time"
 )
 
+const (
+	dateLayout = "01/02/2006"
+)
+
 var (
-	dotSearchParamsRegex = regexp.MustCompile(`query\.asp\?searchtype=ANY&query_type=queryCarrierSnapshot&query_param=USDOT&original_query_param=NAME&query_string=([0-9]+)&original_query_string=.+`)
+	dotSearchParamsRegex   = regexp.MustCompile(`query_string=([0-9]+)`)
+	mcs150MileageYearRegex = regexp.MustCompile(`([0-9,]+) \(([0-9]{4})\)`)
 )
 
 func parseInt(text string) int {
@@ -29,7 +34,7 @@ func parseDate(text string) *time.Time {
 	if text == "" {
 		return nil
 	}
-	if parsed, err := time.Parse("01/02/2006", text); err == nil {
+	if parsed, err := time.Parse(dateLayout, text); err == nil {
 		return &parsed
 	}
 	return nil
@@ -52,26 +57,37 @@ func parseMCS150MileageYear(text string) (mileage int, year string) {
 	if text == "" {
 		return
 	}
-	if s := strings.Split(text, " ("); len(s) == 2 {
-		mileage = parseInt(s[0])
-		year = s[1][:len(s[1])-1]
+	if res := mcs150MileageYearRegex.FindStringSubmatch(text); len(res) == 3 {
+		mileage = parseInt(res[1])
+		year = res[2]
 	}
 	return
 }
 
-func parseAddress(texts ...string) (fullAddr string) {
-	for i, text := range texts {
+// parse an address returned by xpath query on html.
+// multiline address returns an array of strings in this format:
+//	[]string{"3101 S PACKERLAND DR", "GREEN BAY, WI \u00a0 54313", "X"}
+func parseAddress(texts ...string) string {
+	var (
+		b       strings.Builder
+		written int
+	)
+	for _, text := range texts {
 		if text != "X" {
-			if i > 0 {
-				fullAddr += " "
+			if written > 0 {
+				b.WriteString(" ")
 			}
-			fullAddr += strings.ReplaceAll(text, "\u00a0 ", "") // remove &nbsp;
+			b.WriteString(strings.ReplaceAll(text, "\u00a0 ", "")) // remove &nbsp;
+			written++
 		}
 	}
-	return
+	return b.String()
 }
 
 func parseDotFromSearchParams(params string) string {
+	if params == "" {
+		return ""
+	}
 	if res := dotSearchParamsRegex.FindStringSubmatch(params); len(res) == 2 {
 		return res[1]
 	}

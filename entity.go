@@ -34,7 +34,7 @@ type CompanySnapshot struct {
 	MailingAddress           string            `json:"mailing_address"`
 	DOTNumber                string            `json:"dot_number"`
 	StateCarrierID           string            `json:"state_carrier_id"`
-	MCMXFFNumbers            string            `json:"mc_mx_ff_numbers"`
+	MCMXFFNumbers            []string          `json:"mc_mx_ff_numbers"`
 	DUNSNumber               string            `json:"duns_number"`
 	MCS150Mileage            int               `json:"mcs_150_mileage"`
 	MCS150Year               string            `json:"mcs_150_year"`

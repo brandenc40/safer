@@ -9,7 +9,7 @@ type mapperFunc func(element *colly.XMLElement, snapshot *CompanySnapshot)
 
 // company snapshot xpath constants
 const (
-	snapshotNotFoundXpath = "/html/head/title[text()='SAFER Web - Company Snapshot RECORD NOT FOUND']"
+	snapshotNotFoundXpath = "/html/head/title[text()='SAFER Web - Company Snapshot RECORD NOT FOUND' or text()='SAFER Web - Company Snapshot RECORD INACTIVE']"
 	latestUpdateDateXpath = "//b/font[@color='#0000C0']/text()"
 	tableXpath            = "//table"
 )
@@ -52,8 +52,11 @@ var snapshotTableXpathMapping = map[int]mapperFunc{
 		snapshot.MailingAddress = parseAddress(element.ChildTexts("//tr[8]/td/text()")...)
 		snapshot.DOTNumber = element.ChildText("//tr[9]/td[1]/text()")
 		snapshot.StateCarrierID = element.ChildText("//tr[9]/td[2]/text()")
-		snapshot.MCMXFFNumbers = element.ChildText("//tr[10]/td[1]/a/text()")
+		snapshot.MCMXFFNumbers = element.ChildTexts("//tr[10]/td[1]/a/text()")
 		snapshot.DUNSNumber = element.ChildText("//tr[10]/td[2]/text()")
+		if snapshot.DUNSNumber == "--" {
+			snapshot.DUNSNumber = ""
+		}
 		snapshot.PowerUnits = parseInt(element.ChildText("//tr[11]/td[1]/text()"))
 		snapshot.Drivers = parseInt(element.ChildText("//tr[11]/td[2]/font/b/text()"))
 		snapshot.MCS150FormDate = parseDate(element.ChildText("//tr[12]/td[1]/text()"))
@@ -61,6 +64,7 @@ var snapshotTableXpathMapping = map[int]mapperFunc{
 		snapshot.OutOfServiceDate = parseDate(element.ChildText("//tr[3]/td[2]/text()"))
 		snapshot.OperatingStatus = element.ChildText("//tr[3]/td[1]/text()")
 		if snapshot.OperatingStatus == "" {
+			// out-of-service is bolded and not caught by the previous xpath
 			snapshot.OperatingStatus = element.ChildText("//tr[3]/td[1]/font/b/text()")
 		}
 	},
@@ -69,8 +73,10 @@ var snapshotTableXpathMapping = map[int]mapperFunc{
 		for _, classification := range classifications {
 			snapshot.OperationClassification = append(snapshot.OperationClassification, classification)
 		}
-		if lastVal := element.ChildText("//tr[2]/td[3]/table/tr[5]/td[2]/text()"); lastVal != "" {
-			snapshot.OperationClassification = append(snapshot.OperationClassification, lastVal)
+		// optional extra classifications (not all will have this)
+		classifications = element.ChildTexts("//tr[2]/td/table/tbody/tr[.//td[@class='queryfield']/text() = 'X']/td[2]/text()")
+		for _, classification := range classifications {
+			snapshot.OperationClassification = append(snapshot.OperationClassification, classification)
 		}
 	},
 	tableIdxCarrierOp: func(element *colly.XMLElement, snapshot *CompanySnapshot) {
@@ -81,6 +87,11 @@ var snapshotTableXpathMapping = map[int]mapperFunc{
 	},
 	tableIdxCargoCarried: func(element *colly.XMLElement, snapshot *CompanySnapshot) {
 		cargos := element.ChildTexts("//tr[2]/td/table/tbody/tr[.//td[@class='queryfield']/text() = 'X']/td/font/text()")
+		for _, cargo := range cargos {
+			snapshot.CargoCarried = append(snapshot.CargoCarried, cargo)
+		}
+		// optional extra cargos (not all will have this)
+		cargos = element.ChildTexts("//tr[2]/td/table/tbody/tr[.//td[@class='queryfield']/text() = 'X']/td[2]/text()")
 		for _, cargo := range cargos {
 			snapshot.CargoCarried = append(snapshot.CargoCarried, cargo)
 		}

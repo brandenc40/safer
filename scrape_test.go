@@ -15,7 +15,15 @@ func newTestServer() *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/snapshot", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
-		w.Write(readTestData("./testdata/snapshot-schneider.html"))
+		w.Write(readTestData("./testdata/snapshot-basic.html"))
+	})
+	mux.HandleFunc("/snapshot-extras", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write(readTestData("./testdata/snapshot-extras.html"))
+	})
+	mux.HandleFunc("/snapshot-oos", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write(readTestData("./testdata/snapshot-oos.html"))
 	})
 	mux.HandleFunc("/snapshot-not-found", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
@@ -45,7 +53,7 @@ func readTestData(path string) []byte {
 	return data
 }
 
-func TestScrapeSnapshot_Success(t *testing.T) {
+func TestScrapeSnapshot_Basic(t *testing.T) {
 	ts := newTestServer()
 	defer ts.Close()
 
@@ -73,36 +81,139 @@ func TestScrapeSnapshot_Success(t *testing.T) {
 		CanadaDriverInspections:  InspectionSummary{Inspections: 30, OutOfService: 8, OutOfServicePct: 0.267, NationalAverage: 0},
 		USCrashes:                CrashSummary{Fatal: 15, Injury: 248, Tow: 574, Total: 837},
 		CanadaCrashes:            CrashSummary{Fatal: 0, Injury: 0, Tow: 1, Total: 1},
-		Safety: SafetyRating{
-			RatingDate: &ratingDate,
-			ReviewDate: &reviewDate,
-			Rating:     "Satisfactory",
-			Type:       "Non-Ratable",
-		},
-		LatestUpdateDate:        &updateDate,
-		OutOfServiceDate:        (*time.Time)(nil),
-		MCS150FormDate:          &mcsDate,
-		OperationClassification: []string{"Auth. For Hire"},
-		CarrierOperation:        []string{"Interstate"},
-		CargoCarried:            []string{"General Freight", "Logs, Poles, Beams, Lumber", "Building Materials", "Fresh Produce", "Intermodal Cont.", "Meat", "Chemicals", "Commodities Dry Bulk", "Refrigerated Food", "Beverages", "Paper Products"},
-		LegalName:               "SCHNEIDER NATIONAL CARRIERS INC",
-		DBAName:                 "",
-		EntityType:              "CARRIER/CARGO TANK/BROKER",
-		PhysicalAddress:         "3101 S PACKERLAND DR GREEN BAY, WI 54313",
-		Phone:                   "(800) 558-6767",
-		MailingAddress:          "PO BOX 2545 GREEN BAY, WI 54306-2545",
-		DOTNumber:               "264184",
-		StateCarrierID:          "",
-		MCMXFFNumbers:           "MC-133655",
-		DUNSNumber:              "15-730-4676",
-		MCS150Mileage:           1100158928,
-		MCS150Year:              "2020",
-		OperatingStatus:         "AUTHORIZED",
-		PowerUnits:              10884,
-		Drivers:                 12239,
+		Safety:                   SafetyRating{RatingDate: &ratingDate, ReviewDate: &reviewDate, Rating: "Satisfactory", Type: "Non-Ratable"},
+		LatestUpdateDate:         &updateDate,
+		OutOfServiceDate:         (*time.Time)(nil),
+		MCS150FormDate:           &mcsDate,
+		OperationClassification:  []string{"Auth. For Hire"},
+		CarrierOperation:         []string{"Interstate"},
+		CargoCarried:             []string{"General Freight", "Logs, Poles, Beams, Lumber", "Building Materials", "Fresh Produce", "Intermodal Cont.", "Meat", "Chemicals", "Commodities Dry Bulk", "Refrigerated Food", "Beverages", "Paper Products"},
+		LegalName:                "SCHNEIDER NATIONAL CARRIERS INC",
+		DBAName:                  "",
+		EntityType:               "CARRIER/CARGO TANK/BROKER",
+		PhysicalAddress:          "3101 S PACKERLAND DR GREEN BAY, WI 54313",
+		Phone:                    "(800) 558-6767",
+		MailingAddress:           "PO BOX 2545 GREEN BAY, WI 54306-2545",
+		DOTNumber:                "264184",
+		StateCarrierID:           "",
+		MCMXFFNumbers:            []string{"MC-133655"},
+		DUNSNumber:               "15-730-4676",
+		MCS150Mileage:            1100158928,
+		MCS150Year:               "2020",
+		OperatingStatus:          "AUTHORIZED",
+		PowerUnits:               10884,
+		Drivers:                  12239,
 	}
 	if !reflect.DeepEqual(expected, snapshot) {
 		t.Errorf("scrapeCompanySnapshot() = \n %v, want \n %v", snapshot, expected)
+	}
+}
+
+func TestScrapeSnapshot_Extras(t *testing.T) {
+	ts := newTestServer()
+	defer ts.Close()
+
+	s := &scraper{
+		baseCollector:      colly.NewCollector(),
+		companySnapshotURL: ts.URL + "/snapshot-extras",
+	}
+	snapshot, err := s.scrapeCompanySnapshot("", "")
+	if err != nil {
+		t.Errorf("scrapeCompanySnapshot should return no error, but got %v", err)
+	}
+	if snapshot == nil {
+		t.Errorf("snapshot should not return nil")
+	}
+	updateDate := time.Unix(1629244800, 0).UTC()
+	expected := &CompanySnapshot{
+		USVehicleInspections:     InspectionSummary{Inspections: 0, OutOfService: 0, OutOfServicePct: 0, NationalAverage: 0.2084},
+		USDriverInspections:      InspectionSummary{Inspections: 0, OutOfService: 0, OutOfServicePct: 0, NationalAverage: 0.0545},
+		USHazmatInspections:      InspectionSummary{Inspections: 0, OutOfService: 0, OutOfServicePct: 0, NationalAverage: 0.0441},
+		USIEPInspections:         InspectionSummary{Inspections: 0, OutOfService: 0, OutOfServicePct: 0, NationalAverage: 0},
+		CanadaVehicleInspections: InspectionSummary{Inspections: 0, OutOfService: 0, OutOfServicePct: 0, NationalAverage: 0},
+		CanadaDriverInspections:  InspectionSummary{Inspections: 0, OutOfService: 0, OutOfServicePct: 0, NationalAverage: 0},
+		USCrashes:                CrashSummary{Fatal: 0, Injury: 0, Tow: 0, Total: 0},
+		CanadaCrashes:            CrashSummary{Fatal: 0, Injury: 0, Tow: 0, Total: 0},
+		Safety:                   SafetyRating{RatingDate: (*time.Time)(nil), ReviewDate: (*time.Time)(nil), Rating: "None", Type: "None"},
+		LatestUpdateDate:         &updateDate,
+		OutOfServiceDate:         (*time.Time)(nil),
+		MCS150FormDate:           (*time.Time)(nil),
+		OperationClassification:  []string{"Private(Property)", "APPLYING F"},
+		CarrierOperation:         []string{"Intrastate Only (Non-HM)"},
+		CargoCarried:             []string{"Grain, Feed, Hay", "Agricultural/Farm Supplies", "Construction", "ROCK SAND DIRT"},
+		LegalName:                "DONALD R SCHNEIDER",
+		DBAName:                  "",
+		EntityType:               "CARRIER",
+		PhysicalAddress:          "230 W BLACKHAWK OLD MONROE, MO 63369",
+		Phone:                    "(636) 665-5500",
+		MailingAddress:           "230 W BLACKHAWK OLD MONROE, MO 63369",
+		DOTNumber:                "884762",
+		StateCarrierID:           "",
+		MCMXFFNumbers:            []string{},
+		DUNSNumber:               "",
+		MCS150Mileage:            10000,
+		MCS150Year:               "1999",
+		OperatingStatus:          "ACTIVE",
+		PowerUnits:               1,
+		Drivers:                  1,
+	}
+	if !reflect.DeepEqual(expected, snapshot) {
+		t.Errorf("scrapeCompanySnapshot() = \n %#v, want \n %#v", snapshot, expected)
+	}
+}
+
+func TestScrapeSnapshot_OOS(t *testing.T) {
+	ts := newTestServer()
+	defer ts.Close()
+
+	s := &scraper{
+		baseCollector:      colly.NewCollector(),
+		companySnapshotURL: ts.URL + "/snapshot-oos",
+	}
+	snapshot, err := s.scrapeCompanySnapshot("", "")
+	if err != nil {
+		t.Errorf("scrapeCompanySnapshot should return no error, but got %v", err)
+	}
+	if snapshot == nil {
+		t.Errorf("snapshot should not return nil")
+	}
+	oosDate := time.Unix(1019606400, 0).UTC()
+	updateDate := time.Unix(1629244800, 0).UTC()
+	mcsDate := time.Unix(1088467200, 0).UTC()
+	expected := &CompanySnapshot{
+		USVehicleInspections:     InspectionSummary{Inspections: 0, OutOfService: 0, OutOfServicePct: 0, NationalAverage: 0.2084},
+		USDriverInspections:      InspectionSummary{Inspections: 0, OutOfService: 0, OutOfServicePct: 0, NationalAverage: 0.0545},
+		USHazmatInspections:      InspectionSummary{Inspections: 0, OutOfService: 0, OutOfServicePct: 0, NationalAverage: 0.0441},
+		USIEPInspections:         InspectionSummary{Inspections: 0, OutOfService: 0, OutOfServicePct: 0, NationalAverage: 0},
+		CanadaVehicleInspections: InspectionSummary{Inspections: 0, OutOfService: 0, OutOfServicePct: 0, NationalAverage: 0},
+		CanadaDriverInspections:  InspectionSummary{Inspections: 0, OutOfService: 0, OutOfServicePct: 0, NationalAverage: 0},
+		USCrashes:                CrashSummary{Fatal: 0, Injury: 0, Tow: 0, Total: 0},
+		CanadaCrashes:            CrashSummary{Fatal: 0, Injury: 0, Tow: 0, Total: 0},
+		Safety:                   SafetyRating{RatingDate: (*time.Time)(nil), ReviewDate: (*time.Time)(nil), Rating: "", Type: ""},
+		LatestUpdateDate:         &updateDate,
+		OutOfServiceDate:         &oosDate,
+		MCS150FormDate:           &mcsDate,
+		OperationClassification:  []string{"Private(Property)"},
+		CarrierOperation:         []string{"Intrastate Only (Non-HM)"},
+		CargoCarried:             []string{"Machinery, Large Objects", "Construction", "AUGER RIG"},
+		LegalName:                "LARRY R RIGGS",
+		DBAName:                  "R&J EARTHBORING",
+		EntityType:               "CARRIER",
+		PhysicalAddress:          "",
+		Phone:                    "",
+		MailingAddress:           "",
+		DOTNumber:                "1003306",
+		StateCarrierID:           "",
+		MCMXFFNumbers:            []string{},
+		DUNSNumber:               "",
+		MCS150Mileage:            16000,
+		MCS150Year:               "2001",
+		OperatingStatus:          "OUT-OF-SERVICE",
+		PowerUnits:               2,
+		Drivers:                  1,
+	}
+	if !reflect.DeepEqual(expected, snapshot) {
+		t.Errorf("scrapeCompanySnapshot() = \n %#v, want \n %#v", snapshot, expected)
 	}
 }
 
