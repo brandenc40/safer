@@ -48,3 +48,21 @@ func TestClient_GetCompanyByDOTNumber(t *testing.T) {
 		t.Errorf("error expected nil but got %v", err)
 	}
 }
+
+// benchmarks the time it takes for mapping a snapshot response, omits any time spent waiting for response from SAFER
+func BenchmarkClient_GetCompanyByDOTNumber(b *testing.B) {
+	s := newTestServer()
+	defer s.Close()
+
+	c := (Client)(&client{
+		scraper: &scraper{
+			baseCollector:      colly.NewCollector(),
+			companySnapshotURL: s.URL + "/snapshot",
+			searchURL:          s.URL + "/search",
+		},
+	})
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		_, _ = c.GetCompanyByDOTNumber("")
+	}
+}
