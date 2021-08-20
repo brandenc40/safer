@@ -14,7 +14,7 @@ Scaping is performed using [Colly](https://github.com/gocolly/colly), this proje
 ## Installation
 
 ```shell
-go get github.com/brandenc40/safer
+go get -u github.com/brandenc40/safer
 ```
 
 ## Client Interface
@@ -35,47 +35,5 @@ type Client interface {
     // SearchCompaniesByName - Search for all carriers with a given name. Name queries will return the best matched results
     // in a slice of CompanyResult structs.
     SearchCompaniesByName(name string) ([]CompanyResult, error)
-}
-```
-
-## Example Usage
-
-```go
-package main
-
-import (
-	"log"
-
-	"github.com/brandenc40/safer"
-)
-
-func main() {
-	client := safer.NewClient()
-	
-	// by mc/mx
-	snapshot, err := client.GetCompanyByMCMX("133655")
-	if err != nil {
-		log.Fatalln(err)
-	}
-	log.Printf("%+v", snapshot)
-
-	// by dot
-	snapshot, err = client.GetCompanyByDOTNumber("264184")
-	if err != nil {
-		log.Fatalln(err)
-	}
-	log.Printf("%+v", snapshot)
-
-	// search by name and grab snapshot from result
-	companies, err := client.SearchCompaniesByName("Schneider")
-	if err != nil {
-		log.Fatalln(err)
-	}
-	topResult := companies[0]
-	log.Printf("%#v", topResult)
-	snapshot, err = client.GetCompanyByDOTNumber(topResult.DOTNumber)
-	if err != nil {
-		log.Fatalln(err)
-	}
 }
 ```
