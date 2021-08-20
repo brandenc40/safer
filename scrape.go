@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 
 	"github.com/gocolly/colly/v2"
 )
@@ -28,6 +29,7 @@ var headers = http.Header{
 
 type scraper struct {
 	baseCollector      *colly.Collector
+	collectorMtx       sync.Mutex
 	companySnapshotURL string
 	searchURL          string
 }
@@ -36,7 +38,7 @@ func (s *scraper) scrapeCompanySnapshot(queryParam, queryString string) (*Compan
 	// build output snapshot and scraping collector
 	var (
 		snapshot  = new(CompanySnapshot)
-		collector = s.baseCollector.Clone()
+		collector = s.cloneCollector()
 	)
 
 	// checks to see if the returned page is a not found error, this is only called when the xpath is matched
@@ -68,7 +70,11 @@ func (s *scraper) scrapeCompanySnapshot(queryParam, queryString string) (*Compan
 	}.Encode()
 
 	// send POST and start collector job to parse values
-	if err := collector.Request(http.MethodPost, s.companySnapshotURL, strings.NewReader(data), nil, headers); err != nil {
+	reqURL := companySnapshotURL
+	if s.companySnapshotURL != "" {
+		reqURL = s.companySnapshotURL
+	}
+	if err := collector.Request(http.MethodPost, reqURL, strings.NewReader(data), nil, headers); err != nil {
 		return nil, err
 	}
 
@@ -81,7 +87,7 @@ func (s *scraper) scrapeCompanySnapshot(queryParam, queryString string) (*Compan
 }
 
 func (s *scraper) scrapeCompanyNameSearch(queryString string) ([]CompanyResult, error) {
-	collector := s.baseCollector.Clone()
+	collector := s.cloneCollector()
 
 	// add handler to parse output into the result array
 	var companyResults []CompanyResult
@@ -94,8 +100,24 @@ func (s *scraper) scrapeCompanyNameSearch(queryString string) ([]CompanyResult, 
 	data := url.Values{"searchstring": {searchString}, "SEARCHTYPE": {""}}.Encode()
 
 	// send POST and start collector job to parse values
-	if err := collector.Request(http.MethodPost, s.searchURL, strings.NewReader(data), nil, headers); err != nil {
+	reqURL := searchURL
+	if s.searchURL != "" {
+		reqURL = s.searchURL
+	}
+	if err := collector.Request(http.MethodPost, reqURL, strings.NewReader(data), nil, headers); err != nil {
 		return nil, err
 	}
 	return companyResults, nil
+}
+
+func (s *scraper) cloneCollector() *colly.Collector {
+	// only use mutex if nil, otherwise skip locking
+	if s.baseCollector == nil {
+		s.collectorMtx.Lock()
+		if s.baseCollector == nil {
+			s.baseCollector = colly.NewCollector()
+		}
+		s.collectorMtx.Unlock()
+	}
+	return s.baseCollector.Clone()
 }

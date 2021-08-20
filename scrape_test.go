@@ -277,8 +277,8 @@ func TestScrapeCompanyNameSearch_Error(t *testing.T) {
 	defer ts.Close()
 
 	s := &scraper{
-		baseCollector:      colly.NewCollector(),
-		companySnapshotURL: ts.URL + "/error",
+		baseCollector: colly.NewCollector(),
+		searchURL:     ts.URL + "/error",
 	}
 	result, err := s.scrapeCompanyNameSearch("")
 	if err == nil {
@@ -286,5 +286,16 @@ func TestScrapeCompanyNameSearch_Error(t *testing.T) {
 	}
 	if result != nil {
 		t.Errorf("result should return nil")
+	}
+}
+
+func TestCloneCollector(t *testing.T) {
+	s := &scraper{}
+	if s.baseCollector != nil {
+		t.Error("expected nil")
+	}
+	_ = s.cloneCollector()
+	if s.baseCollector == nil {
+		t.Error("new collector not stored in baseCollector")
 	}
 }
