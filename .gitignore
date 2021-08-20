@@ -18,3 +18,4 @@ vendor/
 # Local Dev
 .idea
 .vscode
+.example
