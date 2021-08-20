@@ -37,3 +37,16 @@ type Client interface {
     SearchCompaniesByName(name string) ([]CompanyResult, error)
 }
 ```
+
+```go
+package main
+
+import (
+	"github.com/brandenc40/safer"
+)
+
+func main() {
+	client := safer.NewClient()
+	//... use the client
+}
+```
