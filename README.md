@@ -52,7 +52,7 @@ func main() {
 
 ### Scraping Benchmark
 
-Benchmarks the time it takes for mapping a snapshot response from html to a CompanySnapshot struct.
+Benchmark of the time it takes for mapping a snapshot response from html to a CompanySnapshot struct.
 This includes minimal time spent waiting for response from server since it uses a mock http server.
 
 ```shell 
