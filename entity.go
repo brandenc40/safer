@@ -4,9 +4,9 @@ import "time"
 
 // CompanyResult is the search result returned from a company query by name
 type CompanyResult struct {
-	Name      string
-	DOTNumber string
-	Location  string
+	Name      string `json:"name"`
+	DOTNumber string `json:"dot_number"`
+	Location  string `json:"location"`
 }
 
 // CompanySnapshot data parsed from the https://safer.fmcsa.dot.gov/CompanySnapshot.aspx website

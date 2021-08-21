@@ -20,9 +20,6 @@ func parseInt(text string) int {
 	if text == "" {
 		return 0
 	}
-	if parsed, err := strconv.Atoi(text); err == nil {
-		return parsed
-	}
 	text = strings.Replace(text, ",", "", -1)
 	if parsed, err := strconv.Atoi(text); err == nil {
 		return parsed

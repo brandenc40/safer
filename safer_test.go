@@ -41,8 +41,11 @@ func TestClient_GetCompanyByDOTNumber(t *testing.T) {
 	}
 
 	results, err := c.SearchCompaniesByName("")
-	if results == nil || len(results) == 0 {
-		t.Error("snapshot returned nil")
+	if results == nil {
+		t.Error("results returned nil")
+	}
+	if len(results) == 0 {
+		t.Error("results length = 0")
 	}
 	if err != nil {
 		t.Errorf("error expected nil but got %v", err)
