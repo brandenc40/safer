@@ -49,3 +49,17 @@ func main() {
 	//... use the client
 }
 ```
+
+### Scraping Benchmark
+
+Benchmarks the time it takes for mapping a snapshot response from html to a CompanySnapshot struct.
+This includes minimal time spent waiting for response from server since it uses a mock http server.
+
+```shell 
+goos: darwin
+goarch: arm64
+pkg: github.com/brandenc40/safer
+BenchmarkClient_GetCompanyByDOTNumber-8           643068              1867 ns/op            4186 B/op         31 allocs/op
+PASS
+ok      github.com/brandenc40/safer     2.754s
+```
