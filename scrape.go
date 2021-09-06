@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 
 	"github.com/gocolly/colly/v2"
 )
@@ -28,8 +27,6 @@ var headers = http.Header{
 }
 
 type scraper struct {
-	baseCollector      *colly.Collector
-	collectorMtx       sync.Mutex
 	companySnapshotURL string
 	searchURL          string
 }
@@ -38,7 +35,7 @@ func (s *scraper) scrapeCompanySnapshot(queryParam, queryString string) (*Compan
 	// build output snapshot and scraping collector
 	var (
 		snapshot  = new(CompanySnapshot)
-		collector = s.cloneCollector()
+		collector = colly.NewCollector()
 	)
 
 	// checks to see if the returned page is a not found error, this is only called when the xpath is matched
@@ -87,7 +84,7 @@ func (s *scraper) scrapeCompanySnapshot(queryParam, queryString string) (*Compan
 }
 
 func (s *scraper) scrapeCompanyNameSearch(queryString string) ([]CompanyResult, error) {
-	collector := s.cloneCollector()
+	collector := colly.NewCollector()
 
 	// add handler to parse output into the result array
 	var companyResults []CompanyResult
@@ -108,16 +105,4 @@ func (s *scraper) scrapeCompanyNameSearch(queryString string) ([]CompanyResult, 
 		return nil, err
 	}
 	return companyResults, nil
-}
-
-func (s *scraper) cloneCollector() *colly.Collector {
-	// only use mutex if nil, otherwise skip locking
-	if s.baseCollector == nil {
-		s.collectorMtx.Lock()
-		if s.baseCollector == nil {
-			s.baseCollector = colly.NewCollector()
-		}
-		s.collectorMtx.Unlock()
-	}
-	return s.baseCollector.Clone()
 }

@@ -1,11 +1,9 @@
 package safer
 
-import "github.com/gocolly/colly/v2"
-
 // NewClient build's a new Client interface
 func NewClient() *Client {
 	return &Client{
-		scraper: scraper{baseCollector: colly.NewCollector()},
+		scraper: scraper{},
 	}
 }
 
