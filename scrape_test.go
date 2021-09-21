@@ -7,8 +7,6 @@ import (
 	"reflect"
 	"testing"
 	"time"
-
-	"github.com/gocolly/colly/v2"
 )
 
 func newTestServer() *httptest.Server {
@@ -58,7 +56,6 @@ func TestScrapeSnapshot_Basic(t *testing.T) {
 	defer ts.Close()
 
 	s := &scraper{
-		baseCollector:      colly.NewCollector(),
 		companySnapshotURL: ts.URL + "/snapshot",
 	}
 	snapshot, err := s.scrapeCompanySnapshot("", "")
@@ -114,7 +111,6 @@ func TestScrapeSnapshot_Extras(t *testing.T) {
 	defer ts.Close()
 
 	s := &scraper{
-		baseCollector:      colly.NewCollector(),
 		companySnapshotURL: ts.URL + "/snapshot-extras",
 	}
 	snapshot, err := s.scrapeCompanySnapshot("", "")
@@ -167,7 +163,6 @@ func TestScrapeSnapshot_OOS(t *testing.T) {
 	defer ts.Close()
 
 	s := &scraper{
-		baseCollector:      colly.NewCollector(),
 		companySnapshotURL: ts.URL + "/snapshot-oos",
 	}
 	snapshot, err := s.scrapeCompanySnapshot("", "")
@@ -222,7 +217,6 @@ func TestScrapeSnapshot_NotFound(t *testing.T) {
 	defer ts.Close()
 
 	s := &scraper{
-		baseCollector:      colly.NewCollector(),
 		companySnapshotURL: ts.URL + "/snapshot-not-found",
 	}
 	snapshot, err := s.scrapeCompanySnapshot("", "")
@@ -239,7 +233,6 @@ func TestScrapeSnapshot_Error(t *testing.T) {
 	defer ts.Close()
 
 	s := &scraper{
-		baseCollector:      colly.NewCollector(),
 		companySnapshotURL: ts.URL + "/error",
 	}
 	snapshot, err := s.scrapeCompanySnapshot("", "")
@@ -256,8 +249,7 @@ func TestScrapeCompanyNameSearch(t *testing.T) {
 	defer ts.Close()
 
 	s := &scraper{
-		baseCollector: colly.NewCollector(),
-		searchURL:     ts.URL + "/search",
+		searchURL: ts.URL + "/search",
 	}
 	result, err := s.scrapeCompanyNameSearch("")
 	if err != nil {
@@ -277,8 +269,7 @@ func TestScrapeCompanyNameSearch_Error(t *testing.T) {
 	defer ts.Close()
 
 	s := &scraper{
-		baseCollector: colly.NewCollector(),
-		searchURL:     ts.URL + "/error",
+		searchURL: ts.URL + "/error",
 	}
 	result, err := s.scrapeCompanyNameSearch("")
 	if err == nil {
@@ -286,16 +277,5 @@ func TestScrapeCompanyNameSearch_Error(t *testing.T) {
 	}
 	if result != nil {
 		t.Errorf("result should return nil")
-	}
-}
-
-func TestCloneCollector(t *testing.T) {
-	s := &scraper{}
-	if s.baseCollector != nil {
-		t.Error("expected nil")
-	}
-	_ = s.cloneCollector()
-	if s.baseCollector == nil {
-		t.Error("new collector not stored in baseCollector")
 	}
 }

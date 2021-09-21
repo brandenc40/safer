@@ -2,8 +2,6 @@ package safer
 
 import (
 	"testing"
-
-	"github.com/gocolly/colly/v2"
 )
 
 func TestNewClient(t *testing.T) {
@@ -19,7 +17,6 @@ func TestClient_GetCompanyByDOTNumber(t *testing.T) {
 
 	c := &Client{
 		scraper: scraper{
-			baseCollector:      colly.NewCollector(),
 			companySnapshotURL: s.URL + "/snapshot",
 			searchURL:          s.URL + "/search",
 		},
@@ -60,7 +57,6 @@ func BenchmarkClient_GetCompanyByDOTNumber(b *testing.B) {
 
 	c := &Client{
 		scraper: scraper{
-			baseCollector:      colly.NewCollector(),
 			companySnapshotURL: s.URL + "/snapshot",
 			searchURL:          s.URL + "/search",
 		},
