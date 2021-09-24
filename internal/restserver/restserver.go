@@ -1,6 +1,7 @@
 package restserver
 
 import (
+	"net/url"
 	"time"
 
 	"github.com/brandenc40/safer"
@@ -35,7 +36,11 @@ func NewServer() *Server {
 		return ctx.JSON(snapshot)
 	})
 	s.app.Get("/search/:value", func(ctx *fiber.Ctx) error {
-		snapshot, err := s.safer.SearchCompaniesByName(ctx.Params("value"))
+		term, err := url.QueryUnescape(ctx.Params("value"))
+		if err != nil {
+			return err
+		}
+		snapshot, err := s.safer.SearchCompaniesByName(term)
 		if err != nil {
 			return err
 		}

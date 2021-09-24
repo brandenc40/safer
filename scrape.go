@@ -87,7 +87,7 @@ func (s *scraper) scrapeCompanyNameSearch(queryString string) ([]CompanyResult, 
 	collector := colly.NewCollector()
 
 	// add handler to parse output into the result array
-	var companyResults []CompanyResult
+	companyResults := make([]CompanyResult, 0) // initialize to ensure nil is not returned if none are found
 	collector.OnXML(companyResultXpath, func(element *colly.XMLElement) {
 		companyResults = append(companyResults, companyResultStructFromXpath(element))
 	})
