@@ -7,10 +7,6 @@ import (
 	"time"
 )
 
-const (
-	dateLayout = "01/02/2006"
-)
-
 var (
 	dotSearchParamsRegex   = regexp.MustCompile(`query_string=([0-9]+)`)
 	mcs150MileageYearRegex = regexp.MustCompile(`([0-9,]+) \(([0-9]{4})\)`)
@@ -28,10 +24,10 @@ func parseInt(text string) int {
 }
 
 func parseDate(text string) *time.Time {
-	if text == "" {
+	if text == "" || len(text) < 10 {
 		return nil
 	}
-	if parsed, err := time.Parse(dateLayout, text); err == nil {
+	if parsed, err := time.Parse("01/02/2006", text[:10]); err == nil {
 		return &parsed
 	}
 	return nil
@@ -65,10 +61,8 @@ func parseMCS150MileageYear(text string) (mileage int, year string) {
 // multiline address returns an array of strings in this format:
 //	[]string{"3101 S PACKERLAND DR", "GREEN BAY, WI \u00a0 54313", "X"}
 func parseAddress(texts ...string) string {
-	var (
-		b       strings.Builder
-		written int
-	)
+	var b strings.Builder
+	var written int
 	for _, text := range texts {
 		if text != "X" {
 			if written > 0 {

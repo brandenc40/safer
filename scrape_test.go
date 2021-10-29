@@ -235,12 +235,12 @@ func TestScrapeSnapshot_Error(t *testing.T) {
 	s := &scraper{
 		companySnapshotURL: ts.URL + "/error",
 	}
-	snapshot, err := s.scrapeCompanySnapshot("", "")
+	snapshot, err := s.scrapeCompanySnapshot("a", "a")
 	if err == nil {
 		t.Errorf("scrapeCompanySnapshot should return an error but got %v", err)
 	}
 	if snapshot != nil {
-		t.Errorf("snapshot should return nil")
+		t.Errorf("snapshot should return nil but got %v", snapshot)
 	}
 }
 

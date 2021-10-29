@@ -1,11 +1,12 @@
 package safer
 
 import (
+	"errors"
 	"net/http"
-	"net/url"
 	"strings"
 
-	"github.com/gocolly/colly/v2"
+	"github.com/antchfx/htmlquery"
+	"golang.org/x/net/html"
 )
 
 const (
@@ -32,77 +33,62 @@ type scraper struct {
 }
 
 func (s *scraper) scrapeCompanySnapshot(queryParam, queryString string) (*CompanySnapshot, error) {
-	// build output snapshot and scraping collector
-	var (
-		snapshot  = new(CompanySnapshot)
-		collector = colly.NewCollector()
-	)
-
-	// checks to see if the returned page is a not found error, this is only called when the xpath is matched
-	var notFound bool
-	collector.OnXML(snapshotNotFoundXpath, func(element *colly.XMLElement) {
-		notFound = true
-	})
-
-	// add handler to extract the latest update date
-	collector.OnXML(latestUpdateDateXpath, func(element *colly.XMLElement) {
-		snapshot.LatestUpdateDate = parseDate(element.Text)
-	})
-
-	// add handler to extract values from tables
-	var tableIdx int
-	collector.OnXML(tableXpath, func(element *colly.XMLElement) {
-		if mapFunc, ok := snapshotTableXpathMapping[tableIdx]; ok {
-			mapFunc(element, snapshot)
-		}
-		tableIdx++
-	})
-
-	// build POST data
-	data := url.Values{
-		"searchType":   {"ANY"},
-		"query_type":   {"queryCarrierSnapshot"},
-		"query_param":  {queryParam},
-		"query_string": {queryString},
-	}.Encode()
-
-	// send POST and start collector job to parse values
+	params := "?searchType=ANY&query_type=queryCarrierSnapshot&query_param=" + queryParam + "&query_string=" + queryString
 	reqURL := companySnapshotURL
 	if s.companySnapshotURL != "" {
 		reqURL = s.companySnapshotURL
 	}
-	if err := collector.Request(http.MethodPost, reqURL, strings.NewReader(data), nil, headers); err != nil {
+	node, err := postRequestToHTMLNode(reqURL + params)
+	if err != nil {
 		return nil, err
 	}
-
-	// if snapshotNotFoundXpath was matched then return ErrCompanyNotFound
-	if notFound {
+	if found := htmlquery.Find(node, snapshotNotFoundXpath); found != nil && len(found) > 0 {
 		return nil, ErrCompanyNotFound
 	}
-
+	snapshot := new(CompanySnapshot)
+	for i, n := range htmlquery.Find(node, tableXpath) {
+		if mapFunc, ok := snapshotTableXpathMapping[i]; ok {
+			mapFunc(n, snapshot)
+		}
+	}
+	snapshot.LatestUpdateDate = parseDate(getNodeText(node, latestUpdateDateXpath))
 	return snapshot, nil
 }
 
 func (s *scraper) scrapeCompanyNameSearch(queryString string) ([]CompanyResult, error) {
-	collector := colly.NewCollector()
-
-	// add handler to parse output into the result array
-	companyResults := make([]CompanyResult, 0) // initialize to ensure nil is not returned if none are found
-	collector.OnXML(companyResultXpath, func(element *colly.XMLElement) {
-		companyResults = append(companyResults, companyResultStructFromXpath(element))
-	})
-
-	// build POST data
-	searchString := "*" + strings.ToUpper(queryString) + "*" // e.g. `*SEARCH TERM*`
-	data := url.Values{"searchstring": {searchString}, "SEARCHTYPE": {""}}.Encode()
-
-	// send POST and start collector job to parse values
+	params := "?SEARCHTYPE=&searchstring=*" + strings.ToUpper(queryString) + "*"
 	reqURL := searchURL
 	if s.searchURL != "" {
 		reqURL = s.searchURL
 	}
-	if err := collector.Request(http.MethodPost, reqURL, strings.NewReader(data), nil, headers); err != nil {
+	node, err := postRequestToHTMLNode(reqURL + params)
+	if err != nil {
 		return nil, err
 	}
+	resultNodes := htmlquery.Find(node, companyResultXpath)
+	if resultNodes == nil {
+		return []CompanyResult{}, nil
+	}
+	companyResults := make([]CompanyResult, len(resultNodes), len(resultNodes))
+	for i, n := range resultNodes {
+		companyResults[i] = companyResultFromNode(n)
+	}
 	return companyResults, nil
+}
+
+func postRequestToHTMLNode(reqURL string) (*html.Node, error) {
+	req, err := http.NewRequest(http.MethodPost, reqURL, http.NoBody)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = headers
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New(resp.Status)
+	}
+	return htmlquery.Parse(resp.Body)
 }
