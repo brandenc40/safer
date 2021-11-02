@@ -60,7 +60,16 @@ func BenchmarkClient_GetCompanyByDOTNumber(b *testing.B) {
 	}
 }
 
-func BenchmarkClient_Search(b *testing.B) {
+func BenchmarkClient_Search_4Results(b *testing.B) {
+	node, _ := htmlquery.LoadDoc("./testdata/search-result-short.html")
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		_, _ = htmlNodeToCompanyResults(node)
+	}
+}
+
+func BenchmarkClient_Search_484Results(b *testing.B) {
 	node, _ := htmlquery.LoadDoc("./testdata/search-result.html")
 	b.ReportAllocs()
 	b.ResetTimer()
