@@ -7,141 +7,189 @@ import (
 	"golang.org/x/net/html"
 )
 
-// function to map the XMLElement to the CompanySnapshot
-type mapperFunc func(node *html.Node, snapshot *CompanySnapshot)
-
 // company snapshot xpath constants
 const (
-	snapshotNotFoundXpath = "/html/head/title[text()='SAFER Web - Company Snapshot RECORD NOT FOUND' or text()='SAFER Web - Company Snapshot RECORD INACTIVE']"
-	latestUpdateDateXpath = "//b/font[@color='#0000C0']/text()"
-	tableXpath            = "//table"
+	snapshotNotFoundXpath      = "/html/head/title[text()='SAFER Web - Company Snapshot RECORD NOT FOUND' or text()='SAFER Web - Company Snapshot RECORD INACTIVE']"
+	srcTableXpath              = "/html/body/p/table/tbody/tr[2]/td/table/tbody/tr[2]/td"
+	latestUpdateDateXpath      = "/table/tbody/tr[3]/td/font/b[3]/font/text()"
+	tableGeneralInfoXpath      = "/center[1]/table/tbody"
+	tableOperationClassXpath   = "/tr[14]/td/table/tbody/tr[2]/td/table/tbody/tr[.//td[@class='queryfield']/text() = 'X']"
+	tableCarrierOpXpath        = "/tr[16]/td/table/tbody/tr[2]/td/table/tbody/tr[.//td[@class='queryfield']/text() = 'X']/td/font/text()"
+	tableCargoCarriedXpath     = "/tr[19]/td/table/tbody/tr[2]/td/table/tbody/tr[.//td[@class='queryfield']/text() = 'X']"
+	tableUSInspectionXpath     = "/center[3]/table/tbody"
+	tableUSCrashXpath          = "/center[4]/table/tbody/tr[2]"
+	tableCanadaInspectionXpath = "/center[6]/table/tbody"
+	tableCanadaCrashXpath      = "/center[7]/table/tbody/tr[2]/td/text()"
+	tableSafetyRatingXpath     = "/center[9]/table/tbody"
 )
 
 // company search xpath constants
 const (
-	companyResultXpath = "//tr[.//*[@scope='rpw']]"
+	companyResultXpath = "/html/body/table[3]/tbody/tr[.//*[@scope='rpw']]"
 )
 
-// company snapshot tableXpath indexes
-const (
-	tableIdxGeneralInfo       = 6
-	tableIdxOperationClass    = 7
-	tableIdxCarrierOp         = 11
-	tableIdxCargoCarried      = 15
-	tableIdxUsInspections     = 19
-	tableIdxUsCrashes         = 20
-	tableIdxCanadaInspections = 21
-	tableIdxCanadaCrashes     = 22
-	tableIdxSafetyRating      = 23
-)
+func htmlNodeToCompanySnapshot(root *html.Node) (*CompanySnapshot, error) {
+	if found := htmlquery.Find(root, snapshotNotFoundXpath); found != nil && len(found) > 0 {
+		return nil, ErrCompanyNotFound
+	}
+	snapshot := new(CompanySnapshot)
+	if srcNode := htmlquery.FindOne(root, srcTableXpath); srcNode != nil {
+		snapshot.LatestUpdateDate = parseDate(getNodeText(srcNode, latestUpdateDateXpath))
+		// general info
+		if node := htmlquery.FindOne(srcNode, tableGeneralInfoXpath); node != nil {
+			snapshot.EntityType = getNodeText(node, "/tr[2]/td/text()")
+			if tr3 := htmlquery.FindOne(node, "/tr[3]"); tr3 != nil {
+				snapshot.OutOfServiceDate = parseDate(getNodeText(tr3, "/td[2]/text()"))
+				snapshot.OperatingStatus = getNodeText(tr3, "/td[1]/text()")
+				if snapshot.OperatingStatus == "" {
+					// out-of-service is bolded and not caught by the previous xpath
+					snapshot.OperatingStatus = getNodeText(tr3, "/td[1]/font/b/text()")
+				}
+			}
+			snapshot.LegalName = getNodeText(node, "/tr[4]/td/text()")
+			snapshot.DBAName = getNodeText(node, "/tr[5]/td/text()")
+			snapshot.PhysicalAddress = parseAddress(getNodeTexts(node, "/tr[6]/td/text()")...)
+			snapshot.Phone = getNodeText(node, "/tr[7]/td/text()")
+			snapshot.MailingAddress = parseAddress(getNodeTexts(node, "/tr[8]/td/text()")...)
+			if tr9 := htmlquery.FindOne(node, "/tr[9]"); tr9 != nil {
+				snapshot.DOTNumber = getNodeText(tr9, "/td[1]/text()")
+				snapshot.StateCarrierID = getNodeText(tr9, "/td[2]/text()")
+			}
+			if tr10 := htmlquery.FindOne(node, "/tr[10]"); tr10 != nil {
+				snapshot.MCMXFFNumbers = getNodeTexts(tr10, "/td[1]/a/text()")
+				snapshot.DUNSNumber = getNodeText(tr10, "/td[2]/text()")
+				if snapshot.DUNSNumber == "--" {
+					snapshot.DUNSNumber = ""
+				}
+			}
+			if tr11 := htmlquery.FindOne(node, "/tr[11]"); tr11 != nil {
+				snapshot.PowerUnits = parseInt(getNodeText(tr11, "/td[1]/text()"))
+				snapshot.Drivers = parseInt(getNodeText(tr11, "/td[2]/font/b/text()"))
+			}
+			if tr12 := htmlquery.FindOne(node, "/tr[12]"); tr12 != nil {
+				snapshot.MCS150FormDate = parseDate(getNodeText(tr12, "/td[1]/text()"))
+				snapshot.MCS150Mileage, snapshot.MCS150Year = parseMCS150MileageYear(getNodeText(tr12, "/td[2]/font/b/text()"))
+			}
+			// carrier classification
+			for _, classNode := range htmlquery.Find(node, tableOperationClassXpath) {
+				classification := getNodeText(classNode, "/td/font/text()")
+				if classification == "" {
+					// optional extra classifications (not all will have this)
+					classification = getNodeText(classNode, "/td[2]/text()")
+				}
+				if classification != "" {
+					snapshot.OperationClassification = append(snapshot.OperationClassification, classification)
+				}
+			}
+			// carrier operation
+			operations := getNodeTexts(node, tableCarrierOpXpath)
+			for _, op := range operations {
+				snapshot.CarrierOperation = append(snapshot.CarrierOperation, op)
+			}
+			// cargo carried
+			for _, cargoNode := range htmlquery.Find(node, tableCargoCarriedXpath) {
+				cargo := getNodeText(cargoNode, "/td/font/text()")
+				if cargo == "" {
+					// optional extra classifications (not all will have this)
+					cargo = getNodeText(cargoNode, "/td[2]/text()")
+				}
+				if cargo != "" {
+					snapshot.CargoCarried = append(snapshot.CargoCarried, cargo)
+				}
+			}
+		}
+		// us inspections
+		if node := htmlquery.FindOne(srcNode, tableUSInspectionXpath); node != nil {
+			if tr2 := htmlquery.FindOne(node, "/tr[2]"); tr2 != nil {
+				snapshot.USVehicleInspections.Inspections = parseInt(getNodeText(tr2, "/td[1]/text()"))
+				snapshot.USDriverInspections.Inspections = parseInt(getNodeText(tr2, "/td[2]/text()"))
+				snapshot.USHazmatInspections.Inspections = parseInt(getNodeText(tr2, "/td[3]/text()"))
+				snapshot.USIEPInspections.Inspections = parseInt(getNodeText(tr2, "/td[4]/text()"))
+			}
+			if tr3 := htmlquery.FindOne(node, "/tr[3]"); tr3 != nil {
+				snapshot.USVehicleInspections.OutOfService = parseInt(getNodeText(tr3, "/td[1]/text()"))
+				snapshot.USDriverInspections.OutOfService = parseInt(getNodeText(tr3, "/td[2]/text()"))
+				snapshot.USHazmatInspections.OutOfService = parseInt(getNodeText(tr3, "/td[3]/text()"))
+				snapshot.USIEPInspections.OutOfService = parseInt(getNodeText(tr3, "/td[4]/text()"))
+			}
+			if tr4 := htmlquery.FindOne(node, "/tr[4]"); tr4 != nil {
+				snapshot.USVehicleInspections.OutOfServicePct = parsePctToFloat32(getNodeText(tr4, "/td[1]/text()"))
+				snapshot.USDriverInspections.OutOfServicePct = parsePctToFloat32(getNodeText(tr4, "/td[2]/text()"))
+				snapshot.USHazmatInspections.OutOfServicePct = parsePctToFloat32(getNodeText(tr4, "/td[3]/text()"))
+				snapshot.USIEPInspections.OutOfServicePct = parsePctToFloat32(getNodeText(tr4, "/td[4]/text()"))
+			}
+			if tr5 := htmlquery.FindOne(node, "/tr[5]"); tr5 != nil {
+				snapshot.USVehicleInspections.NationalAverage = parsePctToFloat32(getNodeText(tr5, "/td[1]/font/text()"))
+				snapshot.USDriverInspections.NationalAverage = parsePctToFloat32(getNodeText(tr5, "/td[2]/font/text()"))
+				snapshot.USHazmatInspections.NationalAverage = parsePctToFloat32(getNodeText(tr5, "/td[3]/font/text()"))
+				snapshot.USIEPInspections.NationalAverage = parsePctToFloat32(getNodeText(tr5, "/td[4]/font/text()"))
+			}
+		}
+		// us crash
+		if node := htmlquery.FindOne(srcNode, tableUSCrashXpath); node != nil {
+			snapshot.USCrashes.Fatal = parseInt(getNodeText(node, "/td[1]/text()"))
+			snapshot.USCrashes.Injury = parseInt(getNodeText(node, "/td[2]/text()"))
+			snapshot.USCrashes.Tow = parseInt(getNodeText(node, "/td[3]/text()"))
+			snapshot.USCrashes.Total = parseInt(getNodeText(node, "/td[4]/text()"))
+		}
+		// canada inspection
+		if node := htmlquery.FindOne(srcNode, tableCanadaInspectionXpath); node != nil {
+			if tr2 := htmlquery.FindOne(node, "/tr[2]"); tr2 != nil {
+				snapshot.CanadaVehicleInspections.Inspections = parseInt(getNodeText(tr2, "/td[1]/text()"))
+				snapshot.CanadaDriverInspections.Inspections = parseInt(getNodeText(tr2, "/td[2]/text()"))
+			}
+			if tr3 := htmlquery.FindOne(node, "/tr[3]"); tr3 != nil {
+				snapshot.CanadaVehicleInspections.OutOfService = parseInt(getNodeText(tr3, "/td[1]/text()"))
+				snapshot.CanadaDriverInspections.OutOfService = parseInt(getNodeText(tr3, "/td[2]/text()"))
+			}
+			if tr4 := htmlquery.FindOne(node, "/tr[4]"); tr4 != nil {
+				snapshot.CanadaVehicleInspections.OutOfServicePct = parsePctToFloat32(getNodeText(tr4, "/td[1]/text()"))
+				snapshot.CanadaDriverInspections.OutOfServicePct = parsePctToFloat32(getNodeText(tr4, "/td[2]/text()"))
+			}
+		}
+		// canada crash
+		if nodes := htmlquery.Find(srcNode, tableCanadaCrashXpath); nodes != nil {
+			snapshot.CanadaCrashes.Fatal = parseInt(strings.TrimSpace(nodes[0].Data))
+			snapshot.CanadaCrashes.Injury = parseInt(strings.TrimSpace(nodes[1].Data))
+			snapshot.CanadaCrashes.Tow = parseInt(strings.TrimSpace(nodes[2].Data))
+			snapshot.CanadaCrashes.Total = parseInt(strings.TrimSpace(nodes[3].Data))
+		}
+		// canada crash
+		if node := htmlquery.FindOne(srcNode, tableSafetyRatingXpath); node != nil {
+			if tr2 := htmlquery.Find(node, "/tr[2]/td/text()"); tr2 != nil {
+				snapshot.Safety.RatingDate = parseDate(strings.TrimSpace(tr2[0].Data))
+				snapshot.Safety.ReviewDate = parseDate(strings.TrimSpace(tr2[1].Data))
+			}
+			if tr3 := htmlquery.Find(node, "/tr[3]/td/text()"); tr3 != nil {
+				snapshot.Safety.Rating = strings.TrimSpace(tr3[0].Data)
+				snapshot.Safety.Type = strings.TrimSpace(tr3[1].Data)
+			}
+		}
+	}
+	return snapshot, nil
+}
 
-// key=index of tableXpath element to find the data, value=function to map the XMLElement to the CompanySnapshot
-var snapshotTableXpathMapping = map[int]mapperFunc{
-	tableIdxGeneralInfo: func(node *html.Node, snapshot *CompanySnapshot) {
-		snapshot.EntityType = getNodeText(node, "//tr[2]/td/text()")
-		snapshot.LegalName = getNodeText(node, "//tr[4]/td/text()")
-		snapshot.DBAName = getNodeText(node, "//tr[5]/td/text()")
-		snapshot.PhysicalAddress = parseAddress(getNodeTexts(node, "//tr[6]/td/text()")...)
-		snapshot.Phone = getNodeText(node, "//tr[7]/td/text()")
-		snapshot.MailingAddress = parseAddress(getNodeTexts(node, "//tr[8]/td/text()")...)
-		snapshot.DOTNumber = getNodeText(node, "//tr[9]/td[1]/text()")
-		snapshot.StateCarrierID = getNodeText(node, "//tr[9]/td[2]/text()")
-		snapshot.MCMXFFNumbers = getNodeTexts(node, "//tr[10]/td[1]/a/text()")
-		snapshot.DUNSNumber = getNodeText(node, "//tr[10]/td[2]/text()")
-		if snapshot.DUNSNumber == "--" {
-			snapshot.DUNSNumber = ""
-		}
-		snapshot.PowerUnits = parseInt(getNodeText(node, "//tr[11]/td[1]/text()"))
-		snapshot.Drivers = parseInt(getNodeText(node, "//tr[11]/td[2]/font/b/text()"))
-		snapshot.MCS150FormDate = parseDate(getNodeText(node, "//tr[12]/td[1]/text()"))
-		snapshot.MCS150Mileage, snapshot.MCS150Year = parseMCS150MileageYear(getNodeText(node, "//tr[12]/td[2]/font/b/text()"))
-		snapshot.OutOfServiceDate = parseDate(getNodeText(node, "//tr[3]/td[2]/text()"))
-		snapshot.OperatingStatus = getNodeText(node, "//tr[3]/td[1]/text()")
-		if snapshot.OperatingStatus == "" {
-			// out-of-service is bolded and not caught by the previous xpath
-			snapshot.OperatingStatus = getNodeText(node, "//tr[3]/td[1]/font/b/text()")
-		}
-	},
-	tableIdxOperationClass: func(node *html.Node, snapshot *CompanySnapshot) {
-		classifications := getNodeTexts(node, "//tr[2]/td/table/tbody/tr[.//td[@class='queryfield']/text() = 'X']/td/font/text()")
-		for _, classification := range classifications {
-			snapshot.OperationClassification = append(snapshot.OperationClassification, classification)
-		}
-		// optional extra classifications (not all will have this)
-		classifications = getNodeTexts(node, "//tr[2]/td/table/tbody/tr[.//td[@class='queryfield']/text() = 'X']/td[2]/text()")
-		for _, classification := range classifications {
-			snapshot.OperationClassification = append(snapshot.OperationClassification, classification)
-		}
-	},
-	tableIdxCarrierOp: func(node *html.Node, snapshot *CompanySnapshot) {
-		operations := getNodeTexts(node, "//tr[2]/td/table/tbody/tr[.//td[@class='queryfield']/text() = 'X']/td/font/text()")
-		for _, op := range operations {
-			snapshot.CarrierOperation = append(snapshot.CarrierOperation, op)
-		}
-	},
-	tableIdxCargoCarried: func(node *html.Node, snapshot *CompanySnapshot) {
-		cargos := getNodeTexts(node, "//tr[2]/td/table/tbody/tr[.//td[@class='queryfield']/text() = 'X']/td/font/text()")
-		for _, cargo := range cargos {
-			snapshot.CargoCarried = append(snapshot.CargoCarried, cargo)
-		}
-		// optional extra cargos (not all will have this)
-		cargos = getNodeTexts(node, "//tr[2]/td/table/tbody/tr[.//td[@class='queryfield']/text() = 'X']/td[2]/text()")
-		for _, cargo := range cargos {
-			snapshot.CargoCarried = append(snapshot.CargoCarried, cargo)
-		}
-	},
-	tableIdxUsInspections: func(node *html.Node, snapshot *CompanySnapshot) {
-		snapshot.USVehicleInspections.Inspections = parseInt(getNodeText(node, "//tr[2]/td[1]/text()"))
-		snapshot.USVehicleInspections.OutOfService = parseInt(getNodeText(node, "//tr[3]/td[1]/text()"))
-		snapshot.USVehicleInspections.OutOfServicePct = parsePctToFloat32(getNodeText(node, "//tr[4]/td[1]/text()"))
-		snapshot.USVehicleInspections.NationalAverage = parsePctToFloat32(getNodeText(node, "//tr[5]/td[1]/font/text()"))
-		snapshot.USDriverInspections.Inspections = parseInt(getNodeText(node, "//tr[2]/td[2]/text()"))
-		snapshot.USDriverInspections.OutOfService = parseInt(getNodeText(node, "//tr[3]/td[2]/text()"))
-		snapshot.USDriverInspections.OutOfServicePct = parsePctToFloat32(getNodeText(node, "//tr[4]/td[2]/text()"))
-		snapshot.USDriverInspections.NationalAverage = parsePctToFloat32(getNodeText(node, "//tr[5]/td[2]/font/text()"))
-		snapshot.USHazmatInspections.Inspections = parseInt(getNodeText(node, "//tr[2]/td[3]/text()"))
-		snapshot.USHazmatInspections.OutOfService = parseInt(getNodeText(node, "//tr[3]/td[3]/text()"))
-		snapshot.USHazmatInspections.OutOfServicePct = parsePctToFloat32(getNodeText(node, "//tr[4]/td[3]/text()"))
-		snapshot.USHazmatInspections.NationalAverage = parsePctToFloat32(getNodeText(node, "//tr[5]/td[3]/font/text()"))
-		snapshot.USIEPInspections.Inspections = parseInt(getNodeText(node, "//tr[2]/td[4]/text()"))
-		snapshot.USIEPInspections.OutOfService = parseInt(getNodeText(node, "//tr[3]/td[4]/text()"))
-		snapshot.USIEPInspections.OutOfServicePct = parsePctToFloat32(getNodeText(node, "//tr[4]/td[4]/text()"))
-		snapshot.USIEPInspections.NationalAverage = parsePctToFloat32(getNodeText(node, "//tr[5]/td[4]/font/text()"))
-	},
-	tableIdxUsCrashes: func(node *html.Node, snapshot *CompanySnapshot) {
-		snapshot.USCrashes.Fatal = parseInt(getNodeText(node, "//tr[2]/td[1]/text()"))
-		snapshot.USCrashes.Injury = parseInt(getNodeText(node, "//tr[2]/td[2]/text()"))
-		snapshot.USCrashes.Tow = parseInt(getNodeText(node, "//tr[2]/td[3]/text()"))
-		snapshot.USCrashes.Total = parseInt(getNodeText(node, "//tr[2]/td[4]/text()"))
-	},
-	tableIdxCanadaInspections: func(node *html.Node, snapshot *CompanySnapshot) {
-		snapshot.CanadaVehicleInspections.Inspections = parseInt(getNodeText(node, "//tr[2]/td[1]/text()"))
-		snapshot.CanadaVehicleInspections.OutOfService = parseInt(getNodeText(node, "//tr[3]/td[1]/text()"))
-		snapshot.CanadaVehicleInspections.OutOfServicePct = parsePctToFloat32(getNodeText(node, "//tr[4]/td[1]/text()"))
-		snapshot.CanadaDriverInspections.Inspections = parseInt(getNodeText(node, "//tr[2]/td[2]/text()"))
-		snapshot.CanadaDriverInspections.OutOfService = parseInt(getNodeText(node, "//tr[3]/td[2]/text()"))
-		snapshot.CanadaDriverInspections.OutOfServicePct = parsePctToFloat32(getNodeText(node, "//tr[4]/td[2]/text()"))
-	},
-	tableIdxCanadaCrashes: func(node *html.Node, snapshot *CompanySnapshot) {
-		snapshot.CanadaCrashes.Fatal = parseInt(getNodeText(node, "//tr[2]/td[1]/text()"))
-		snapshot.CanadaCrashes.Injury = parseInt(getNodeText(node, "//tr[2]/td[2]/text()"))
-		snapshot.CanadaCrashes.Tow = parseInt(getNodeText(node, "//tr[2]/td[3]/text()"))
-		snapshot.CanadaCrashes.Total = parseInt(getNodeText(node, "//tr[2]/td[4]/text()"))
-	},
-	tableIdxSafetyRating: func(node *html.Node, snapshot *CompanySnapshot) {
-		snapshot.Safety.RatingDate = parseDate(getNodeText(node, "//tr[2]/td[1]/text()"))
-		snapshot.Safety.ReviewDate = parseDate(getNodeText(node, "//tr[2]/td[2]/text()"))
-		snapshot.Safety.Rating = getNodeText(node, "//tr[3]/td[1]/text()")
-		snapshot.Safety.Type = getNodeText(node, "//tr[3]/td[2]/text()")
-	},
+func htmlNodeToCompanyResults(node *html.Node) ([]CompanyResult, error) {
+	resultNodes := htmlquery.Find(node, companyResultXpath)
+	if resultNodes == nil || len(resultNodes) == 0 {
+		return []CompanyResult{}, nil
+	}
+	companyResults := make([]CompanyResult, len(resultNodes), len(resultNodes))
+	for i, n := range resultNodes {
+		companyResults[i] = companyResultFromNode(n)
+	}
+	return companyResults, nil
 }
 
 func companyResultFromNode(n *html.Node) CompanyResult {
-	return CompanyResult{
-		Name:      getNodeText(n, "/th/b/a/text()"),
-		DOTNumber: parseDotFromSearchParams(getNodeAttrText(n, "/th/b/a/@href", "href")),
-		Location:  getNodeText(n, "/td/b/text()"),
+	res := CompanyResult{
+		Location: getNodeText(n, "/td/b/text()"),
 	}
+	if node := htmlquery.FindOne(n, "/th/b/a"); node != nil {
+		res.Name = getNodeText(node, "/text()")
+		res.DOTNumber = parseDotFromSearchParams(htmlquery.SelectAttr(node, "href"))
+	}
+	return res
 }
 
 func getNodeText(node *html.Node, path string) string {
@@ -150,14 +198,6 @@ func getNodeText(node *html.Node, path string) string {
 		return ""
 	}
 	return strings.TrimSpace(child.Data)
-}
-
-func getNodeAttrText(node *html.Node, path, attr string) string {
-	child := htmlquery.FindOne(node, path)
-	if child == nil {
-		return ""
-	}
-	return strings.TrimSpace(htmlquery.SelectAttr(child, attr))
 }
 
 func getNodeTexts(node *html.Node, path string) []string {

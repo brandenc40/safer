@@ -2,6 +2,8 @@ package safer
 
 import (
 	"testing"
+
+	"github.com/antchfx/htmlquery"
 )
 
 func TestNewClient(t *testing.T) {
@@ -49,20 +51,20 @@ func TestClient_GetCompanyByDOTNumber(t *testing.T) {
 	}
 }
 
-// benchmarks the time it takes for mapping a snapshot response.
-// doesn't include any time spent waiting for response from server.
 func BenchmarkClient_GetCompanyByDOTNumber(b *testing.B) {
-	s := newTestServer()
-	defer s.Close()
-
-	c := &Client{
-		scraper: scraper{
-			companySnapshotURL: s.URL + "/snapshot",
-			searchURL:          s.URL + "/search",
-		},
-	}
+	node, _ := htmlquery.LoadDoc("./testdata/snapshot-basic.html")
+	b.ReportAllocs()
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		_, _ = c.GetCompanyByDOTNumber("")
+		_, _ = htmlNodeToCompanySnapshot(node)
+	}
+}
+
+func BenchmarkClient_Search(b *testing.B) {
+	node, _ := htmlquery.LoadDoc("./testdata/search-result.html")
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		_, _ = htmlNodeToCompanyResults(node)
 	}
 }

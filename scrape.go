@@ -42,17 +42,7 @@ func (s *scraper) scrapeCompanySnapshot(queryParam, queryString string) (*Compan
 	if err != nil {
 		return nil, err
 	}
-	if found := htmlquery.Find(node, snapshotNotFoundXpath); found != nil && len(found) > 0 {
-		return nil, ErrCompanyNotFound
-	}
-	snapshot := new(CompanySnapshot)
-	for i, n := range htmlquery.Find(node, tableXpath) {
-		if mapFunc, ok := snapshotTableXpathMapping[i]; ok {
-			mapFunc(n, snapshot)
-		}
-	}
-	snapshot.LatestUpdateDate = parseDate(getNodeText(node, latestUpdateDateXpath))
-	return snapshot, nil
+	return htmlNodeToCompanySnapshot(node)
 }
 
 func (s *scraper) scrapeCompanyNameSearch(queryString string) ([]CompanyResult, error) {
@@ -65,15 +55,7 @@ func (s *scraper) scrapeCompanyNameSearch(queryString string) ([]CompanyResult, 
 	if err != nil {
 		return nil, err
 	}
-	resultNodes := htmlquery.Find(node, companyResultXpath)
-	if resultNodes == nil {
-		return []CompanyResult{}, nil
-	}
-	companyResults := make([]CompanyResult, len(resultNodes), len(resultNodes))
-	for i, n := range resultNodes {
-		companyResults[i] = companyResultFromNode(n)
-	}
-	return companyResults, nil
+	return htmlNodeToCompanyResults(node)
 }
 
 func postRequestToHTMLNode(reqURL string) (*html.Node, error) {
@@ -88,7 +70,7 @@ func postRequestToHTMLNode(reqURL string) (*html.Node, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New(resp.Status)
+		return nil, errors.New(resp.Status + " Response from SAFER")
 	}
 	return htmlquery.Parse(resp.Body)
 }
