@@ -17,10 +17,10 @@ const (
 	tableCarrierOpXpath        = "/tr[16]/td/table/tbody/tr[2]/td/table/tbody/tr[.//td[@class='queryfield']/text() = 'X']/td/font/text()"
 	tableCargoCarriedXpath     = "/tr[19]/td/table/tbody/tr[2]/td/table/tbody/tr[.//td[@class='queryfield']/text() = 'X']"
 	tableUSInspectionXpath     = "/center[3]/table/tbody"
-	tableUSCrashXpath          = "/center[4]/table/tbody/tr[2]"
-	tableCanadaInspectionXpath = "/center[6]/table/tbody"
+	tableUSCrashXpath          = "/center[4]/table/tbody/tr[2]/td/text()"
+	tableCanadaInspectionXpath = "/center[6]/table/tbody/tr"
 	tableCanadaCrashXpath      = "/center[7]/table/tbody/tr[2]/td/text()"
-	tableSafetyRatingXpath     = "/center[9]/table/tbody"
+	tableSafetyRatingXpath     = "/center[9]/table/tbody/tr"
 )
 
 // company search xpath constants
@@ -126,26 +126,21 @@ func htmlNodeToCompanySnapshot(root *html.Node) (*CompanySnapshot, error) {
 			}
 		}
 		// us crash
-		if node := htmlquery.FindOne(srcNode, tableUSCrashXpath); node != nil {
-			snapshot.USCrashes.Fatal = parseInt(getNodeText(node, "/td[1]/text()"))
-			snapshot.USCrashes.Injury = parseInt(getNodeText(node, "/td[2]/text()"))
-			snapshot.USCrashes.Tow = parseInt(getNodeText(node, "/td[3]/text()"))
-			snapshot.USCrashes.Total = parseInt(getNodeText(node, "/td[4]/text()"))
+		if nodes := htmlquery.Find(srcNode, tableUSCrashXpath); nodes != nil {
+			snapshot.USCrashes.Fatal = parseInt(strings.TrimSpace(nodes[0].Data))
+			snapshot.USCrashes.Injury = parseInt(strings.TrimSpace(nodes[1].Data))
+			snapshot.USCrashes.Tow = parseInt(strings.TrimSpace(nodes[2].Data))
+			snapshot.USCrashes.Total = parseInt(strings.TrimSpace(nodes[3].Data))
 		}
 		// canada inspection
-		if node := htmlquery.FindOne(srcNode, tableCanadaInspectionXpath); node != nil {
-			if tr2 := htmlquery.FindOne(node, "/tr[2]"); tr2 != nil {
-				snapshot.CanadaVehicleInspections.Inspections = parseInt(getNodeText(tr2, "/td[1]/text()"))
-				snapshot.CanadaDriverInspections.Inspections = parseInt(getNodeText(tr2, "/td[2]/text()"))
-			}
-			if tr3 := htmlquery.FindOne(node, "/tr[3]"); tr3 != nil {
-				snapshot.CanadaVehicleInspections.OutOfService = parseInt(getNodeText(tr3, "/td[1]/text()"))
-				snapshot.CanadaDriverInspections.OutOfService = parseInt(getNodeText(tr3, "/td[2]/text()"))
-			}
-			if tr4 := htmlquery.FindOne(node, "/tr[4]"); tr4 != nil {
-				snapshot.CanadaVehicleInspections.OutOfServicePct = parsePctToFloat32(getNodeText(tr4, "/td[1]/text()"))
-				snapshot.CanadaDriverInspections.OutOfServicePct = parsePctToFloat32(getNodeText(tr4, "/td[2]/text()"))
-			}
+		if nodes := htmlquery.Find(srcNode, tableCanadaInspectionXpath); nodes != nil {
+			snapshot.CanadaVehicleInspections.Inspections = parseInt(getNodeText(nodes[1], "/td[1]/text()"))
+			snapshot.CanadaDriverInspections.Inspections = parseInt(getNodeText(nodes[1], "/td[2]/text()"))
+			snapshot.CanadaVehicleInspections.OutOfService = parseInt(getNodeText(nodes[2], "/td[1]/text()"))
+			snapshot.CanadaDriverInspections.OutOfService = parseInt(getNodeText(nodes[2], "/td[2]/text()"))
+			snapshot.CanadaVehicleInspections.OutOfServicePct = parsePctToFloat32(getNodeText(nodes[3], "/td[1]/text()"))
+			snapshot.CanadaDriverInspections.OutOfServicePct = parsePctToFloat32(getNodeText(nodes[3], "/td[2]/text()"))
+
 		}
 		// canada crash
 		if nodes := htmlquery.Find(srcNode, tableCanadaCrashXpath); nodes != nil {
@@ -154,13 +149,13 @@ func htmlNodeToCompanySnapshot(root *html.Node) (*CompanySnapshot, error) {
 			snapshot.CanadaCrashes.Tow = parseInt(strings.TrimSpace(nodes[2].Data))
 			snapshot.CanadaCrashes.Total = parseInt(strings.TrimSpace(nodes[3].Data))
 		}
-		// canada crash
-		if node := htmlquery.FindOne(srcNode, tableSafetyRatingXpath); node != nil {
-			if tr2 := htmlquery.Find(node, "/tr[2]/td/text()"); tr2 != nil {
+		// safety rating
+		if nodes := htmlquery.Find(srcNode, tableSafetyRatingXpath); nodes != nil {
+			if tr2 := htmlquery.Find(nodes[1], "/td/text()"); tr2 != nil {
 				snapshot.Safety.RatingDate = parseDate(strings.TrimSpace(tr2[0].Data))
 				snapshot.Safety.ReviewDate = parseDate(strings.TrimSpace(tr2[1].Data))
 			}
-			if tr3 := htmlquery.Find(node, "/tr[3]/td/text()"); tr3 != nil {
+			if tr3 := htmlquery.Find(nodes[2], "/td/text()"); tr3 != nil {
 				snapshot.Safety.Rating = strings.TrimSpace(tr3[0].Data)
 				snapshot.Safety.Type = strings.TrimSpace(tr3[1].Data)
 			}
