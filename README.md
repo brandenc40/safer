@@ -52,6 +52,8 @@ func main() {
 
 ### Scraping Benchmark
 
+Benchmarks only test the time taken to parse the html and map it back to the output. Server time is ignored here.
+
 ```shell 
 goos: darwin
 goarch: arm64
