@@ -56,10 +56,9 @@ func main() {
 goos: darwin
 goarch: arm64
 pkg: github.com/brandenc40/safer
-BenchmarkClient_GetCompanyByDOTNumber-8             9210            130090 ns/op           91592 B/op       2672 allocs/op
-BenchmarkClient_Search_4Results-8                  88213             13506 ns/op            9888 B/op        305 allocs/op
-BenchmarkClient_Search_484Results-8                  952           1269938 ns/op          871513 B/op      27195 allocs/op
+BenchmarkClient_GetCompanyByDOTNumber-8             9145            132111 ns/op           91557 B/op       2672 allocs/op
+BenchmarkClient_Search_4Results-8                  94274             12821 ns/op            9559 B/op        285 allocs/op
+BenchmarkClient_Search_484Results-8                 1048           1137919 ns/op          826245 B/op      24774 allocs/op
 PASS
-ok      github.com/brandenc40/safer     4.957s
-
+ok      github.com/brandenc40/safer     4.942s
 ```

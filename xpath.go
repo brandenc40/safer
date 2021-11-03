@@ -177,7 +177,7 @@ func companyResultFromNode(n *html.Node) CompanyResult {
 		Location: getNodeText(n, "/td/b/text()"),
 	}
 	if node := htmlquery.FindOne(n, "/th/b/a"); node != nil {
-		res.Name = getNodeText(node, "/text()")
+		res.Name = htmlquery.InnerText(node)
 		res.DOTNumber = parseDotFromSearchParams(htmlquery.SelectAttr(node, "href"))
 	}
 	return res
