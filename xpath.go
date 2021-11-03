@@ -16,7 +16,7 @@ const (
 	tableOperationClassXpath   = "/tr[14]/td/table/tbody/tr[2]/td/table/tbody/tr[.//td[@class='queryfield']/text() = 'X']"
 	tableCarrierOpXpath        = "/tr[16]/td/table/tbody/tr[2]/td/table/tbody/tr[.//td[@class='queryfield']/text() = 'X']/td/font/text()"
 	tableCargoCarriedXpath     = "/tr[19]/td/table/tbody/tr[2]/td/table/tbody/tr[.//td[@class='queryfield']/text() = 'X']"
-	tableUSInspectionXpath     = "/center[3]/table/tbody"
+	tableUSInspectionXpath     = "/center[3]/table/tbody/tr"
 	tableUSCrashXpath          = "/center[4]/table/tbody/tr[2]/td/text()"
 	tableCanadaInspectionXpath = "/center[6]/table/tbody/tr"
 	tableCanadaCrashXpath      = "/center[7]/table/tbody/tr[2]/td/text()"
@@ -99,31 +99,27 @@ func htmlNodeToCompanySnapshot(root *html.Node) (*CompanySnapshot, error) {
 			}
 		}
 		// us inspections
-		if node := htmlquery.FindOne(srcNode, tableUSInspectionXpath); node != nil {
-			if tr2 := htmlquery.FindOne(node, "/tr[2]"); tr2 != nil {
-				snapshot.USVehicleInspections.Inspections = parseInt(getNodeText(tr2, "/td[1]/text()"))
-				snapshot.USDriverInspections.Inspections = parseInt(getNodeText(tr2, "/td[2]/text()"))
-				snapshot.USHazmatInspections.Inspections = parseInt(getNodeText(tr2, "/td[3]/text()"))
-				snapshot.USIEPInspections.Inspections = parseInt(getNodeText(tr2, "/td[4]/text()"))
-			}
-			if tr3 := htmlquery.FindOne(node, "/tr[3]"); tr3 != nil {
-				snapshot.USVehicleInspections.OutOfService = parseInt(getNodeText(tr3, "/td[1]/text()"))
-				snapshot.USDriverInspections.OutOfService = parseInt(getNodeText(tr3, "/td[2]/text()"))
-				snapshot.USHazmatInspections.OutOfService = parseInt(getNodeText(tr3, "/td[3]/text()"))
-				snapshot.USIEPInspections.OutOfService = parseInt(getNodeText(tr3, "/td[4]/text()"))
-			}
-			if tr4 := htmlquery.FindOne(node, "/tr[4]"); tr4 != nil {
-				snapshot.USVehicleInspections.OutOfServicePct = parsePctToFloat32(getNodeText(tr4, "/td[1]/text()"))
-				snapshot.USDriverInspections.OutOfServicePct = parsePctToFloat32(getNodeText(tr4, "/td[2]/text()"))
-				snapshot.USHazmatInspections.OutOfServicePct = parsePctToFloat32(getNodeText(tr4, "/td[3]/text()"))
-				snapshot.USIEPInspections.OutOfServicePct = parsePctToFloat32(getNodeText(tr4, "/td[4]/text()"))
-			}
-			if tr5 := htmlquery.FindOne(node, "/tr[5]"); tr5 != nil {
-				snapshot.USVehicleInspections.NationalAverage = parsePctToFloat32(getNodeText(tr5, "/td[1]/font/text()"))
-				snapshot.USDriverInspections.NationalAverage = parsePctToFloat32(getNodeText(tr5, "/td[2]/font/text()"))
-				snapshot.USHazmatInspections.NationalAverage = parsePctToFloat32(getNodeText(tr5, "/td[3]/font/text()"))
-				snapshot.USIEPInspections.NationalAverage = parsePctToFloat32(getNodeText(tr5, "/td[4]/font/text()"))
-			}
+		if nodes := htmlquery.Find(srcNode, tableUSInspectionXpath); nodes != nil {
+			// tr[2]
+			snapshot.USVehicleInspections.Inspections = parseInt(getNodeText(nodes[1], "/td[1]/text()"))
+			snapshot.USDriverInspections.Inspections = parseInt(getNodeText(nodes[1], "/td[2]/text()"))
+			snapshot.USHazmatInspections.Inspections = parseInt(getNodeText(nodes[1], "/td[3]/text()"))
+			snapshot.USIEPInspections.Inspections = parseInt(getNodeText(nodes[1], "/td[4]/text()"))
+			// tr[3]
+			snapshot.USVehicleInspections.OutOfService = parseInt(getNodeText(nodes[2], "/td[1]/text()"))
+			snapshot.USDriverInspections.OutOfService = parseInt(getNodeText(nodes[2], "/td[2]/text()"))
+			snapshot.USHazmatInspections.OutOfService = parseInt(getNodeText(nodes[2], "/td[3]/text()"))
+			snapshot.USIEPInspections.OutOfService = parseInt(getNodeText(nodes[2], "/td[4]/text()"))
+			// tr[4]
+			snapshot.USVehicleInspections.OutOfServicePct = parsePctToFloat32(getNodeText(nodes[3], "/td[1]/text()"))
+			snapshot.USDriverInspections.OutOfServicePct = parsePctToFloat32(getNodeText(nodes[3], "/td[2]/text()"))
+			snapshot.USHazmatInspections.OutOfServicePct = parsePctToFloat32(getNodeText(nodes[3], "/td[3]/text()"))
+			snapshot.USIEPInspections.OutOfServicePct = parsePctToFloat32(getNodeText(nodes[3], "/td[4]/text()"))
+			// tr[5]
+			snapshot.USVehicleInspections.NationalAverage = parsePctToFloat32(getNodeText(nodes[4], "/td[1]/font/text()"))
+			snapshot.USDriverInspections.NationalAverage = parsePctToFloat32(getNodeText(nodes[4], "/td[2]/font/text()"))
+			snapshot.USHazmatInspections.NationalAverage = parsePctToFloat32(getNodeText(nodes[4], "/td[3]/font/text()"))
+			snapshot.USIEPInspections.NationalAverage = parsePctToFloat32(getNodeText(nodes[4], "/td[4]/font/text()"))
 		}
 		// us crash
 		if nodes := htmlquery.Find(srcNode, tableUSCrashXpath); nodes != nil {
